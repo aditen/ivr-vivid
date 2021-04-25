@@ -2,8 +2,12 @@ from flask import Flask, Response, request
 from flask_cors import CORS
 import json
 
+from class_name_suggester import ClassNameSuggester
+
 app = Flask(__name__)
 CORS(app)
+
+suggester = ClassNameSuggester()
 
 @app.route('/execute_filter', methods=['POST'])
 def execute_filter():
@@ -14,7 +18,7 @@ def execute_filter():
 @app.route('/suggest_imagenet_class', methods=['GET'])
 def suggest_imagenet_class():
     query_string = request.args.get("query")
-    return Response(json.dumps({"class": query_string}), mimetype="application/json")
+    return Response(json.dumps({"classes": suggester.predict_class(query_string)}), mimetype="application/json")
 
 @app.route('/', methods=['GET'])
 def sample():
