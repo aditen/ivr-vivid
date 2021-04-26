@@ -18,9 +18,10 @@ import * as React from "react";
 import {useState} from "react";
 import Head from "next/dist/next-server/lib/head";
 import {Rnd} from "react-rnd";
-import {Autocomplete} from "@material-ui/lab";
+import {Autocomplete, FilterOptionsState} from "@material-ui/lab";
 import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
 import {LocatedObject} from "../src/LocatedObject";
+import axios from "axios";
 
 const demoImages = Array.from(Array(32).keys()).map(x => x + 1)
     .map(num => "https://iten.engineering/files/keyframes/00032/shot00032_" + num + "_RKF.png");
@@ -30,6 +31,18 @@ const MainPage: NextPage = () => {
     const [figures, setFigures] = useState<LocatedObject[]>([]);
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
+    const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
+
+    const fetchContent = async (query: string) => {
+        try {
+            const res = await axios.get<string[]>("http://localhost:5000/suggest_imagenet_class?query=" + query);
+            console.log(res.data);
+            setClassSuggestions(res.data);
+        } catch (e) {
+            console.error(e);
+            alert("Error! Please reload page! If you see this again, contact the admin.");
+        }
+    };
 
     const isLargeScreen = useMediaQuery('(min-width:670px)');
 
@@ -104,12 +117,28 @@ const MainPage: NextPage = () => {
                     }}><Icon>add</Icon></IconButton>
                 </div>
                 <div style={{marginTop: 15, marginBottom: 15}}>
+                    <Autocomplete
+                        onInputChange={(event, newValue) => {
+                            fetchContent(newValue).catch(console.error);
+                        }}
+                        filterOptions={(options: string[], state: FilterOptionsState<string>) => {
+                            return options;
+                        }}
+                        options={classSuggestions}
+                        fullWidth={true}
+                        renderInput={(params) => <TextField {...params} label="Choose image class..."
+                                                            variant="outlined"/>}
+                    />
+                </div>
+                <div style={{marginTop: 15, marginBottom: 15}}>
                     <Button variant={"contained"} color={"secondary"} onClick={() => {
                         setFigures([]);
                     }}><Icon>delete</Icon>Clear canvas</Button>
                 </div>
-                <Button variant={"contained"} color={"default"} disabled={figures.length == 0}
-                        onClick={() => setQuerySubmitted(true)}><Icon>done</Icon>Submit query</Button>
+                <div>
+                    <Button variant={"contained"} color={"default"} disabled={figures.length == 0}
+                            onClick={() => setQuerySubmitted(true)}><Icon>done</Icon>Submit query</Button>
+                </div>
             </Grid>
         </Grid>
         <Dialog open={querySubmitted} fullScreen={true}
