@@ -20,7 +20,7 @@ def execute_filter():
 @app.route('/suggest_imagenet_class', methods=['GET'])
 def suggest_imagenet_class():
     query_string = request.args.get("query")
-    return Response(json.dumps({"classes": suggester.predict_class(query_string)}), mimetype="application/json")
+    return Response(json.dumps(suggester.predict_class(query_string)), mimetype="application/json")
 
 
 @app.route('/', methods=['GET'])
