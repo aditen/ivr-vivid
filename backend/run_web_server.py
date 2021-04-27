@@ -3,6 +3,7 @@ from flask_cors import CORS
 import json
 
 from class_name_suggester import ClassNameSuggester
+from data_classes import FilterCriteria
 
 app = Flask(__name__)
 CORS(app)
@@ -12,8 +13,9 @@ suggester = ClassNameSuggester()
 
 @app.route('/execute_filter', methods=['POST'])
 def execute_filter():
-    request_body = json.loads(request.get_data().decode("utf-8"))
-    return Response(json.dumps({request: request_body}),
+    request_body: FilterCriteria = FilterCriteria.from_json(request.get_data().decode("utf-8"))
+    print(request_body)
+    return Response(json.dumps({"request": request_body.text}),
                     mimetype="application/json")
 
 
