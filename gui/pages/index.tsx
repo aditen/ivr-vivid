@@ -1,7 +1,7 @@
 import {NextPage} from "next";
 import {
     AppBar,
-    Button,
+    Button, Chip,
     Dialog,
     DialogContent,
     Grid,
@@ -32,8 +32,9 @@ const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
+    const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
 
-    const fetchContent = async (query: string) => {
+    const fetchClassSuggestions = async (query: string) => {
         try {
             const res = await axios.get<string[]>("http://localhost:5000/suggest_imagenet_class?query=" + query);
             console.log(res.data);
@@ -119,16 +120,33 @@ const MainPage: NextPage = () => {
                 <div style={{marginTop: 15, marginBottom: 15}}>
                     <Autocomplete
                         onInputChange={(event, newValue) => {
-                            fetchContent(newValue).catch(console.error);
+                            fetchClassSuggestions(newValue).catch(console.error);
+                        }}
+                        onChange={(event, value) => {
+                            if (!!value) {
+                                selectedClasses.push(value);
+                                setSelectedClasses([...selectedClasses]);
+                            }
                         }}
                         filterOptions={(options: string[], state: FilterOptionsState<string>) => {
                             return options;
                         }}
                         options={classSuggestions}
                         fullWidth={true}
-                        renderInput={(params) => <TextField {...params} label="Choose image class..."
+                        renderInput={(params) => <TextField {...params} label="Choose potential image class..."
                                                             variant="outlined"/>}
                     />
+                </div>
+                <div>
+                    {selectedClasses.map((cls, clsIdx) => <Chip variant={"outlined"}
+                                                                style={{margin: 5}}
+                                                                key={clsIdx}
+                                                                label={cls}
+                                                                onDelete={() => {
+                                                                    selectedClasses.splice(clsIdx, 1);
+                                                                    setSelectedClasses([...selectedClasses]);
+                                                                }}
+                    />)}
                 </div>
                 <div style={{marginTop: 15, marginBottom: 15}}>
                     <Button variant={"contained"} color={"secondary"} onClick={() => {
