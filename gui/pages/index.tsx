@@ -30,7 +30,7 @@ const MainPage: NextPage = () => {
     const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-    const [searchText, setSearchText] = useState<string | undefined>();
+    const [searchText, setSearchText] = useState<string>("");
     const [resultMatrix, setResultMatrix] = useState<string[][]>([[]]);
 
     const fetchClassSuggestions = async (query: string) => {
@@ -51,6 +51,7 @@ const MainPage: NextPage = () => {
             const res = await axios.post<string[][]>("http://localhost:5000/execute_query", {
                 locatedObjects: figures,
                 classNames: selectedClasses,
+                text: searchText,
                 gridWidth: isLargeScreen ? 8 : 4
             });
             setResultMatrix(res.data);
@@ -142,8 +143,8 @@ const MainPage: NextPage = () => {
                                 setSelectedClasses([...selectedClasses]);
                             }
                         }}
-                        filterOptions={(options: string[], state: FilterOptionsState<string>) => {
-                            return options;
+                        filterOptions={(options: string[]) => {
+                            return options.filter(option => selectedClasses.indexOf(option) === -1);
                         }}
                         options={classSuggestions}
                         fullWidth={true}
@@ -162,19 +163,19 @@ const MainPage: NextPage = () => {
                                                                 }}
                     />)}
                 </div>
-                <div>
-                    <TextField fullWidth={true} label="Enter video text" variant="outlined"/>
+                <div style={{marginTop: 15, marginBottom: 15}}>
+                    <TextField fullWidth={true} label="Enter video text" variant="outlined" value={searchText} onChange={event => setSearchText(event.target.value)}/>
                 </div>
                 <div style={{marginTop: 15, marginBottom: 15}}>
                     <Button variant={"contained"} color={"secondary"} onClick={() => {
                         setFigures([]);
                         setSelectedClasses([]);
+                        setSearchText("");
                     }}><Icon>delete</Icon>Clear Query</Button>
                 </div>
                 <div>
-                    <Button variant={"contained"} color={"default"} disabled={figures.length == 0}
-                            onClick={() => executeQuery() && setQuerySubmitted(true)}><Icon>done</Icon>Submit
-                        query</Button>
+                    <Button variant={"contained"} color={"primary"} disabled={figures.length == 0 && selectedClasses.length == 0 && !searchText}
+                            onClick={() => executeQuery() && setQuerySubmitted(true)}><Icon>done</Icon>Submit query</Button>
                 </div>
             </Grid>
         </Grid>
