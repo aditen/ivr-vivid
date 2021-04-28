@@ -19,5 +19,5 @@ class LocatedObject:
 class FilterCriteria:
     locatedObjects: List[LocatedObject]
     classNames: List[str]
-    text: Optional[str]
     gridWidth: int
+    text: Optional[str] = None

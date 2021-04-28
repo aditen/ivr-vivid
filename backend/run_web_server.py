@@ -4,18 +4,18 @@ import json
 
 from class_name_suggester import ClassNameSuggester
 from data_classes import FilterCriteria
+from query_handler import QueryHandler
 
 app = Flask(__name__)
 CORS(app)
 
 suggester = ClassNameSuggester()
+query_handler = QueryHandler()
 
-
-@app.route('/execute_filter', methods=['POST'])
-def execute_filter():
-    request_body: FilterCriteria = FilterCriteria.from_json(request.get_data().decode("utf-8"))
-    print(request_body)
-    return Response(json.dumps({"request": request_body.text}),
+@app.route('/execute_query', methods=['POST'])
+def execute_query():
+    filter_criteria: FilterCriteria = FilterCriteria.from_json(request.get_data().decode("utf-8"))
+    return Response(json.dumps(query_handler.handle_query(filter_criteria)),
                     mimetype="application/json")
 
 

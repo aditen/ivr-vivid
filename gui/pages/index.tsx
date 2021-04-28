@@ -23,9 +23,6 @@ import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClass
 import {LocatedObject} from "../src/LocatedObject";
 import axios from "axios";
 
-const demoImages = Array.from(Array(32).keys()).map(x => x + 1)
-    .map(num => "https://iten.engineering/files/keyframes/00032/shot00032_" + num + "_RKF.png");
-
 const MainPage: NextPage = () => {
 
     const [figures, setFigures] = useState<LocatedObject[]>([]);
@@ -33,6 +30,8 @@ const MainPage: NextPage = () => {
     const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+    const [searchText, setSearchText] = useState<string | undefined>();
+    const [resultMatrix, setResultMatrix] = useState<string[][]>([[]]);
 
     const fetchClassSuggestions = async (query: string) => {
         try {
@@ -46,6 +45,21 @@ const MainPage: NextPage = () => {
     };
 
     const isLargeScreen = useMediaQuery('(min-width:670px)');
+
+    const executeQuery = async () => {
+        try {
+            const res = await axios.post<string[][]>("http://localhost:5000/execute_query", {
+                locatedObjects: figures,
+                classNames: selectedClasses,
+                gridWidth: isLargeScreen ? 8 : 4
+            });
+            setResultMatrix(res.data);
+            console.log(res.data);
+        } catch (e) {
+            console.error(e);
+            alert("Error! Please reload page! If you see this again, contact the admin.");
+        }
+    };
 
     return (<React.Fragment>
         <Head>
@@ -148,26 +162,29 @@ const MainPage: NextPage = () => {
                                                                 }}
                     />)}
                 </div>
+                <div>
+                    <TextField fullWidth={true} label="Enter video text" variant="outlined"/>
+                </div>
                 <div style={{marginTop: 15, marginBottom: 15}}>
                     <Button variant={"contained"} color={"secondary"} onClick={() => {
                         setFigures([]);
-                    }}><Icon>delete</Icon>Clear canvas</Button>
+                        setSelectedClasses([]);
+                    }}><Icon>delete</Icon>Clear Query</Button>
                 </div>
                 <div>
                     <Button variant={"contained"} color={"default"} disabled={figures.length == 0}
-                            onClick={() => setQuerySubmitted(true)}><Icon>done</Icon>Submit query</Button>
+                            onClick={() => executeQuery() && setQuerySubmitted(true)}><Icon>done</Icon>Submit
+                        query</Button>
                 </div>
             </Grid>
         </Grid>
         <Dialog open={querySubmitted} fullScreen={true}
                 onClose={() => setQuerySubmitted(false)}>
             <DialogContent>
-                <GridList cellHeight={120} cols={6}>
-                    {demoImages.map((tile) => (
-                        <GridListTile key={tile} cols={1}>
-                            <img src={tile}/>
-                        </GridListTile>
-                    ))}
+                <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
+                    {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item} cols={1}>
+                        <img style={{width: "100%", height: "auto"}} src={item}/>
+                    </GridListTile>))}
                 </GridList>
                 {JSON.stringify(figures)}
             </DialogContent>
