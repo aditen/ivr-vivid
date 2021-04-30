@@ -1,41 +1,34 @@
 # FS21: IVR ViViD group
 
-This is the user interface for the FS21 seminar IVR. It holds the client application to be used for a VBS. 
-It is built on top of Next.js (see below) with typescript and additional UI libraries.
+This is our project for the FS21 seminar Interactive Video Retrieval. It contains of a React/Next.JS frontend and a Python/Flask backend
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Backend
+The backend is located in the... supripse! **backend** subfolder. 
+To use it, you need Python 3.8+ (I use 3.8.2, later ones should work as well).
+Easiest way to set it up is by using a virtual environment. Example commands (from the backend folder):
+``
+python -m venv venv
+pip install -r requirements.txt
+python run_web_server.py
+``
+If you want to **add libraries** you can do so by adding them to the *requirements.txt* file. 
+You can either just add the package name, which just downloads the latest version at that point or select a specific version with the syntax package==version
 
-## Getting Started
-
-First, run the development server:
-
-```bash
+## User Interface
+The user interface is located in the *gui* subfolder.
+It requires a [Node.JS/npm](https://nodejs.org) installation with LTS (so choose version 14 LTS). 
+I am personally still on version 10.14, but this should work with higher versions as well.
+Setting it up just requires installing dependencies and then running the dev server, so run the following commands in the gui directory:
+``
+npm install
 npm run dev
-# or
-yarn dev
-```
+``
+If you want to **add libraries** you can do so by doing an *npm i library* command, which adds the version to the package.json as well as package-lock.json files.
+**Note: Please do not commit changes to the package.json file at the moment!**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## REST calls
+For data loading, the user interface calls the backend via REST calls. The methods used are GET and POST. 
+GET is used in the context of getting suggestions (for a given text query) 
+whilst POST is used for executing queries (submitting a filter like dropdown selection, canvas, text in image, combination etc.)
+At some later point we can also add a Swagger UI for that!
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
-
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-
-Nah, just dockerize it.
