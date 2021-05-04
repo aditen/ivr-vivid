@@ -2,3 +2,7 @@ flask
 flask-cors
 gensim
 dataclasses-json
+xpysom==1.0.7
+PIL
+numpy
+cupy-cuda100
