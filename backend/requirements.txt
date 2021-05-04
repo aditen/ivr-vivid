@@ -3,6 +3,7 @@ flask-cors
 gensim
 dataclasses-json
 xpysom==1.0.7
-PIL
+Pillow
 numpy
-cupy-cuda100
+cupy-cuda102
+sklearn

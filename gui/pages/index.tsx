@@ -1,13 +1,17 @@
 import {NextPage} from "next";
 import {
     AppBar,
-    Button, Card, CardActions, CardContent,
+    Button,
+    Card,
+    CardActions,
+    CardContent,
     Chip,
     Dialog,
     DialogContent,
     Grid,
     GridList,
     GridListTile,
+    GridListTileBar,
     Icon,
     IconButton,
     TextField,
@@ -97,38 +101,38 @@ const MainPage: NextPage = () => {
         <Grid justify={"space-evenly"} container={true}>
             <Grid item={true} component={"div"} style={{padding: 5}}>
                 <Card>
-                        <div style={{
-                            width: isLargeScreen ? '640px' : '344px',
-                            height: isLargeScreen ? '360px' : '171px',
-                            borderColor: "black",
-                            borderWidth: "medium",
-                            borderStyle: "solid"
-                        }}>
-                            {figures.map((fig, idx) => <Rnd key={idx} bounds={"parent"}
-                                                            default={{
-                                                                x: fig.xOffset,
-                                                                y: fig.yOffset,
-                                                                width: fig.width,
-                                                                height: fig.height
-                                                            }}
-                                                            onDragStop={(e, d) => {
-                                                                fig.xOffset = d.x;
-                                                                fig.yOffset = d.y;
-                                                            }}
-                                                            onResizeStop={(e, direction, ref, delta, position) => {
-                                                                fig.width = Number.parseFloat(ref.style.width.replace("px", ""));
-                                                                fig.height = Number.parseFloat(ref.style.height.replace("px", ""));
-                                                            }}
-                                                            style={{
-                                                                borderColor: "black",
-                                                                borderWidth: "medium",
-                                                                borderStyle: "dotted"
-                                                            }}>
-                                <img draggable={false} style={{width: "100%", height: "100%"}}
-                                     src={!!YoloClassImages[fig.className] ? YoloClassImages[fig.className] : "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Question_mark_%28black%29.svg/200px-Question_mark_%28black%29.svg.png"}/>
-                            </Rnd>)}
+                    <div style={{
+                        width: isLargeScreen ? '640px' : '344px',
+                        height: isLargeScreen ? '360px' : '171px',
+                        borderColor: "black",
+                        borderWidth: "medium",
+                        borderStyle: "solid"
+                    }}>
+                        {figures.map((fig, idx) => <Rnd key={idx} bounds={"parent"}
+                                                        default={{
+                                                            x: fig.xOffset,
+                                                            y: fig.yOffset,
+                                                            width: fig.width,
+                                                            height: fig.height
+                                                        }}
+                                                        onDragStop={(e, d) => {
+                                                            fig.xOffset = d.x;
+                                                            fig.yOffset = d.y;
+                                                        }}
+                                                        onResizeStop={(e, direction, ref, delta, position) => {
+                                                            fig.width = Number.parseFloat(ref.style.width.replace("px", ""));
+                                                            fig.height = Number.parseFloat(ref.style.height.replace("px", ""));
+                                                        }}
+                                                        style={{
+                                                            borderColor: "black",
+                                                            borderWidth: "medium",
+                                                            borderStyle: "dotted"
+                                                        }}>
+                            <img draggable={false} style={{width: "100%", height: "100%"}}
+                                 src={!!YoloClassImages[fig.className] ? YoloClassImages[fig.className] : "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Question_mark_%28black%29.svg/200px-Question_mark_%28black%29.svg.png"}/>
+                        </Rnd>)}
 
-                        </div>
+                    </div>
                 </Card>
             </Grid>
             <Grid item={true} component={"div"} xs={12} md={4} style={{padding: 5}}>
@@ -213,6 +217,11 @@ const MainPage: NextPage = () => {
                     {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item}
                                                                                                         cols={1}>
                         <img style={{width: "100%", height: "auto"}} src={item}/>
+                        <GridListTileBar title={"00032"} actionIcon={
+                            <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
+                                <Icon>check</Icon>
+                            </IconButton>
+                        }/>
                     </GridListTile>))}
                 </GridList>
                 {JSON.stringify(figures)}
