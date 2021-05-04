@@ -25,19 +25,24 @@ import Head from "next/dist/next-server/lib/head";
 import {Rnd} from "react-rnd";
 import {Autocomplete} from "@material-ui/lab";
 import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
-import {LocatedObject} from "../src/LocatedObject";
 import axios from "axios";
+import {FilterCriteria} from "../src/FilterCriteria";
 
 const MainPage: NextPage = () => {
-
-    const [figures, setFigures] = useState<LocatedObject[]>([]);
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
-    const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-    const [searchText, setSearchText] = useState<string>("");
     const [resultMatrix, setResultMatrix] = useState<string[][]>([[]]);
     const [apiStatus, setApiStatus] = useState<'loading' | 'error' | 'online'>("loading");
+    const isLargeScreen = useMediaQuery('(min-width:670px)');
+    const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
+        locatedObjects: [],
+        classNames: [],
+        gridWidth: isLargeScreen ? 8 : 4,
+        text: ""
+    });
+
+    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 8 : 4}), [isLargeScreen]);
 
     const checkApiStatus = async () => {
         try {
@@ -55,7 +60,6 @@ const MainPage: NextPage = () => {
     const fetchClassSuggestions = async (query: string) => {
         try {
             const res = await axios.get<string[]>("http://localhost:5000/suggest_imagenet_class?query=" + query);
-            console.log(res.data);
             setClassSuggestions(res.data);
         } catch (e) {
             console.error(e);
@@ -63,18 +67,13 @@ const MainPage: NextPage = () => {
         }
     };
 
-    const isLargeScreen = useMediaQuery('(min-width:670px)');
-
     const executeQuery = async () => {
         try {
             const res = await axios.post<string[][]>("http://localhost:5000/execute_query", {
-                locatedObjects: figures,
-                classNames: selectedClasses,
-                text: searchText,
-                gridWidth: isLargeScreen ? 8 : 4
+                ...filterCriteria,
+                text: !!filterCriteria.text ? filterCriteria.text : null
             });
             setResultMatrix(res.data);
-            console.log(res.data);
         } catch (e) {
             console.error(e);
             alert("Error! Please reload page! If you see this again, contact the admin.");
@@ -108,26 +107,26 @@ const MainPage: NextPage = () => {
                         borderWidth: "medium",
                         borderStyle: "solid"
                     }}>
-                        {figures.map((fig, idx) => <Rnd key={idx} bounds={"parent"}
-                                                        default={{
-                                                            x: fig.xOffset,
-                                                            y: fig.yOffset,
-                                                            width: fig.width,
-                                                            height: fig.height
-                                                        }}
-                                                        onDragStop={(e, d) => {
-                                                            fig.xOffset = d.x;
-                                                            fig.yOffset = d.y;
-                                                        }}
-                                                        onResizeStop={(e, direction, ref, delta, position) => {
-                                                            fig.width = Number.parseFloat(ref.style.width.replace("px", ""));
-                                                            fig.height = Number.parseFloat(ref.style.height.replace("px", ""));
-                                                        }}
-                                                        style={{
-                                                            borderColor: "black",
-                                                            borderWidth: "medium",
-                                                            borderStyle: "dotted"
-                                                        }}>
+                        {filterCriteria.locatedObjects.map((fig, idx) => <Rnd key={idx} bounds={"parent"}
+                                                                              default={{
+                                                                                  x: fig.xOffset,
+                                                                                  y: fig.yOffset,
+                                                                                  width: fig.width,
+                                                                                  height: fig.height
+                                                                              }}
+                                                                              onDragStop={(e, d) => {
+                                                                                  fig.xOffset = d.x;
+                                                                                  fig.yOffset = d.y;
+                                                                              }}
+                                                                              onResizeStop={(e, direction, ref, delta, position) => {
+                                                                                  fig.width = Number.parseFloat(ref.style.width.replace("px", ""));
+                                                                                  fig.height = Number.parseFloat(ref.style.height.replace("px", ""));
+                                                                              }}
+                                                                              style={{
+                                                                                  borderColor: "black",
+                                                                                  borderWidth: "medium",
+                                                                                  borderStyle: "dotted"
+                                                                              }}>
                             <img draggable={false} style={{width: "100%", height: "100%"}}
                                  src={!!YoloClassImages[fig.className] ? YoloClassImages[fig.className] : "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Question_mark_%28black%29.svg/200px-Question_mark_%28black%29.svg.png"}/>
                         </Rnd>)}
@@ -152,13 +151,15 @@ const MainPage: NextPage = () => {
                                                                     variant="outlined"/>}
                             />
                             <IconButton disabled={!typeToAdd} style={{marginLeft: 10}} onClick={() => {
-                                setFigures([...figures, {
-                                    className: typeToAdd,
-                                    height: 100,
-                                    width: 100,
-                                    xOffset: isLargeScreen ? 270 : 122,
-                                    yOffset: isLargeScreen ? 130 : 35
-                                }])
+                                setFilterCriteria({
+                                    ...filterCriteria, locatedObjects: [...filterCriteria.locatedObjects, {
+                                        className: typeToAdd,
+                                        height: 100,
+                                        width: 100,
+                                        xOffset: isLargeScreen ? 270 : 122,
+                                        yOffset: isLargeScreen ? 130 : 35
+                                    }]
+                                })
                             }}><Icon>add</Icon></IconButton>
                         </div>
                         <div style={{marginTop: 15, marginBottom: 15}}>
@@ -168,12 +169,14 @@ const MainPage: NextPage = () => {
                                 }}
                                 onChange={(event, value) => {
                                     if (!!value) {
-                                        selectedClasses.push(value);
-                                        setSelectedClasses([...selectedClasses]);
+                                        setFilterCriteria({
+                                            ...filterCriteria,
+                                            classNames: [...filterCriteria.classNames, value]
+                                        })
                                     }
                                 }}
                                 filterOptions={(options: string[]) => {
-                                    return options.filter(option => selectedClasses.indexOf(option) === -1);
+                                    return options.filter(option => filterCriteria.classNames.indexOf(option) === -1);
                                 }}
                                 options={classSuggestions}
                                 fullWidth={true}
@@ -182,28 +185,36 @@ const MainPage: NextPage = () => {
                             />
                         </div>
                         <div>
-                            {selectedClasses.map((cls, clsIdx) => <Chip variant={"outlined"}
-                                                                        style={{margin: 5}}
-                                                                        key={clsIdx}
-                                                                        label={cls}
-                                                                        onDelete={() => {
-                                                                            selectedClasses.splice(clsIdx, 1);
-                                                                            setSelectedClasses([...selectedClasses]);
-                                                                        }}
+                            {filterCriteria.classNames.map((cls, clsIdx) => <Chip variant={"outlined"}
+                                                                                  style={{margin: 5}}
+                                                                                  key={clsIdx}
+                                                                                  label={cls}
+                                                                                  onDelete={() => {
+                                                                                      filterCriteria.classNames.splice(clsIdx, 1);
+                                                                                      setFilterCriteria({...filterCriteria});
+                                                                                  }}
                             />)}
                         </div>
                         <div style={{marginTop: 15, marginBottom: 15}}>
-                            <TextField fullWidth={true} label="Enter video text" variant="outlined" value={searchText}
-                                       onChange={event => setSearchText(event.target.value)}/>
+                            <TextField fullWidth={true} label="Enter video text" variant="outlined"
+                                       value={filterCriteria.text}
+                                       onChange={event => setFilterCriteria({
+                                           ...filterCriteria,
+                                           text: event.target.value
+                                       })}/>
                         </div>
                         <CardActions>
                             <Button variant={"contained"} color={"primary"}
-                                    disabled={figures.length == 0 && selectedClasses.length == 0 && !searchText}
+                                    disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
                                     onClick={() => executeQuery() && setQuerySubmitted(true)}><Icon>done</Icon>Submit</Button>
                             <Button variant={"contained"} color={"secondary"} onClick={() => {
-                                setFigures([]);
-                                setSelectedClasses([]);
-                                setSearchText("");
+                                setFilterCriteria({
+                                    locatedObjects: [],
+                                    classNames: [],
+                                    gridWidth: filterCriteria.gridWidth,
+                                    text: ""
+                                });
+                                setClassSuggestions([]);
                             }}><Icon>delete</Icon>Clear</Button>
                         </CardActions>
                     </CardContent>
@@ -224,7 +235,7 @@ const MainPage: NextPage = () => {
                         }/>
                     </GridListTile>))}
                 </GridList>
-                {JSON.stringify(figures)}
+                {JSON.stringify(filterCriteria)}
             </DialogContent>
         </Dialog>
     </React.Fragment>)

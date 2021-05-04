@@ -7,3 +7,4 @@ Pillow
 numpy
 cupy-cuda102
 sklearn
+python-Levenshtein

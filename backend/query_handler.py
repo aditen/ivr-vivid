@@ -68,21 +68,17 @@ class QueryHandler:
         return location_grid
 
     def handle_query(self, filter_criteria: FilterCriteria) -> List[List[str]]:
-        print(filter_criteria)
-        all_kf_test = ["https://iten.engineering/files/keyframes/00032/shot00032_" +
+        print("Filter criteria:", filter_criteria)
+        all_kf_test = ["D:/keyframes/00032/shot00032_" +
                        str(i) + "_RKF.png" for i in range(1, 33)]
         # 1: Laura filters the keyframes
+        print("Filtered all keyframes")
         # 2: Baris does the SOM on the keyframes
-        # TODO: calculate grid_h based on grid_w, experiment with different it
-        #SOM_shot_locations=self.produce_SOM_grid(all_kf_test,
-        #                                         filter_criteria.gridWidth,
-        #                                         ceil(len(all_kf_test) / filter_criteria.gridWidth),
-        #                                         100)
-        # 3: Adrian gets the response and displays it on the GUI
+        som_map = self.produce_SOM_grid(all_kf_test,
+                                        filter_criteria.gridWidth,
+                                        ceil(len(all_kf_test) / filter_criteria.gridWidth),
+                                        500)
 
-        result_mat = []
-        count = 0
-        while count < len(all_kf_test):
-            result_mat.append(all_kf_test[count:(count + filter_criteria.gridWidth)])
-            count += filter_criteria.gridWidth
-        return result_mat
+        print("Done som:", som_map.tolist())
+        # 3: Adrian gets the response and displays it on the GUI
+        return np.vectorize(lambda x: x.replace("D:/keyframes", "https://iten.engineering/files/keyframes"))(som_map).tolist()
