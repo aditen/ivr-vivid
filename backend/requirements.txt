@@ -2,9 +2,6 @@ flask
 flask-cors
 gensim
 dataclasses-json
-xpysom==1.0.7
-Pillow
+panda
 numpy
-cupy-cuda102
-sklearn
-python-Levenshtein
+operator

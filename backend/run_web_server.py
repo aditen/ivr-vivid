@@ -14,8 +14,9 @@ query_handler = QueryHandler()
 
 @app.route('/execute_query', methods=['POST'])
 def execute_query():
-    filter_criteria: FilterCriteria = FilterCriteria.from_json(request.get_data().decode("utf-8"))
-    return Response(json.dumps(query_handler.handle_query(filter_criteria)),
+    filter_criteria_canvas: FilterCriteria = FilterCriteria.from_json(request.get_data().decode("utf-8"))
+    #filter_criteria_nasnet = request.args.get("query")
+    return Response(json.dumps(query_handler.handle_query(filter_criteria_canvas)),
                     mimetype="application/json")
 
 
