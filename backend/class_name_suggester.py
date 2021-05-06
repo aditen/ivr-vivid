@@ -1,6 +1,7 @@
 from typing import List
 import gensim.downloader as api
-
+import pandas as pd
+import operator
 
 class ClassNameSuggester:
     def __init__(self):
@@ -10,9 +11,21 @@ class ClassNameSuggester:
 
     # TODO: predict nearest classes
     def predict_class(self, query: str) -> List[str]:
+        nasnet = pd.read_csv('/home/jonaslaura/Documents/ivr-vivid-main/backend/features_data/nasnet_formated.csv')
+        nasnetclasses = nasnet['class'].unique()
         similar = []
         try:
-            similar = similar + [x[0] for x in self.model.most_similar(query)]
+            #similar = similar + [x[0] for x in self.model.most_similar(query)]
+            #print(similar)
+            word_to_query = query
+            distances_to_word = {}
+            for x in nasnetclasses:
+                if x in self.model:
+                    distances_to_word[x] = self.model.similarity(word_to_query, x)
+            res = sorted(distances_to_word.items(), key = operator.itemgetter(1), reverse = True)[:10]
+            similar = list(list(zip(*res))[0])
+            print(similar)
         except KeyError:
             print("key error")
         return similar
+
