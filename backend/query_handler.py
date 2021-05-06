@@ -96,7 +96,7 @@ class QueryHandler:
             position = np.unravel_index(i, (grid_h, grid_w))
             if len(collided) > 0:
                 img = collided.pop()
-                index = find_index_from_image(img)
+                index = find_index_from_image(img, image_data)
                 position_grid[
                     position] = index  # for the places that are not filled by the win_map, we put the collided images in order
             else:
@@ -161,7 +161,7 @@ class QueryHandler:
 
         print("Final lenght" , len(sorted_shotframes))
 
-        all_kf_test = ["/media/jonaslaura/Spassspass/keyframes/00032/shot00032_" +
+        all_kf_test = ["https://iten.engineering/files/keyframes/00032/shot00032_" +
                        str(i) + "_RKF.png" for i in range(1, 32)]
 
         #print("original version", all_kf_test)
@@ -177,8 +177,23 @@ class QueryHandler:
         som_map = self.produce_SOM_grid(all_kf_test,
                                         filter_criteria.gridWidth,
                                         ceil(len(all_kf_test) / filter_criteria.gridWidth),
-                                        10)
+                                        10) 
+        list_som = som_map.tolist()
+        print("Done som:", list_som)
+        
+        som_correct_paths_complete = []
 
-        print("Done som:", som_map.tolist())
-        # 3: Adrian gets the response and displays it on the GUI
-        return np.vectorize(lambda x: x.replace("/media/jonaslaura/Spassspass/keyframes", "https://iten.engineering/files/keyframes"))(som_map).tolist()
+        for x in list_som:
+            som_correct_paths = []
+            for element in x: 
+                if element is not None:
+                    new_string = element.replace("/media/jonaslaura/Spassspass/keyframes", "https://iten.engineering/files/keyframes")
+                    som_correct_paths.append(new_string)
+                else:
+                    som_correct_paths.append(None)   
+            som_correct_paths_complete.append(som_correct_paths)
+        print("corrected som:", som_correct_paths_complete)
+       
+        return som_correct_paths
+        
+
