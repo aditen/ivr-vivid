@@ -93,13 +93,21 @@ class QueryHandler:
         collided = collided[::-1]
         print(collided)
         for i in to_fill:
-            img = collided.pop()
             position = np.unravel_index(i, (grid_h, grid_w))
-            index = find_index_from_image(img, image_data)
-            position_grid[
-                position] = index  # for the places that are not filled by the win_map, we put the collided images in order
-
-        location_grid = np.take(shot_locations, position_grid)
+            if len(collided) > 0:
+                img = collided.pop()
+                index = find_index_from_image(img)
+                position_grid[
+                    position] = index  # for the places that are not filled by the win_map, we put the collided images in order
+            else:
+                position_grid[position] = -1
+        location_grid = np.empty_like(position_grid, dtype=object)
+        for row_index, row in enumerate(position_grid):
+            for column_index, shot_index in enumerate(row):
+                if shot_index != -1:
+                    location_grid[row_index][column_index] = shot_locations[shot_index]
+                else:
+                    location_grid[row_index][column_index] = None
         return location_grid
 
     def handle_query(self, filter_criteria: FilterCriteria) -> List[List[str]]:
@@ -169,7 +177,7 @@ class QueryHandler:
         som_map = self.produce_SOM_grid(all_kf_test,
                                         filter_criteria.gridWidth,
                                         ceil(len(all_kf_test) / filter_criteria.gridWidth),
-                                        500)
+                                        10)
 
         print("Done som:", som_map.tolist())
         # 3: Adrian gets the response and displays it on the GUI
