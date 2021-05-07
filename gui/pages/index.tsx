@@ -6,6 +6,7 @@ import {
     CardActions,
     CardContent,
     Chip,
+    CircularProgress,
     Dialog,
     DialogContent,
     Grid,
@@ -30,10 +31,10 @@ import {FilterCriteria} from "../src/FilterCriteria";
 
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
-    const [querySubmitted, setQuerySubmitted] = useState<boolean>(false);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [resultMatrix, setResultMatrix] = useState<string[][]>([[]]);
     const [apiStatus, setApiStatus] = useState<'loading' | 'error' | 'online'>("loading");
+    const [queryStatus, setQueryStatus] = useState<'defining' | 'loading' | 'result' | 'error'>();
     const isLargeScreen = useMediaQuery('(min-width:670px)');
     const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
         locatedObjects: [],
@@ -69,13 +70,16 @@ const MainPage: NextPage = () => {
 
     const executeQuery = async () => {
         try {
+            setQueryStatus("loading");
             const res = await axios.post<string[][]>("http://localhost:5000/execute_query", {
                 ...filterCriteria,
                 text: !!filterCriteria.text ? filterCriteria.text : null
             });
             setResultMatrix(res.data);
+            setQueryStatus("result");
         } catch (e) {
             console.error(e);
+            setQueryStatus("error");
             alert("Error! Please reload page! If you see this again, contact the admin.");
         }
     };
@@ -206,7 +210,7 @@ const MainPage: NextPage = () => {
                         <CardActions>
                             <Button variant={"contained"} color={"primary"}
                                     disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
-                                    onClick={() => executeQuery() && setQuerySubmitted(true)}><Icon>done</Icon>Submit</Button>
+                                    onClick={() => executeQuery()}><Icon>done</Icon>Submit</Button>
                             <Button variant={"contained"} color={"secondary"} onClick={() => {
                                 setFilterCriteria({
                                     locatedObjects: [],
@@ -221,9 +225,21 @@ const MainPage: NextPage = () => {
                 </Card>
             </Grid>
         </Grid>
-        <Dialog open={querySubmitted} fullScreen={true}
-                onClose={() => setQuerySubmitted(false)}>
+        <Dialog open={queryStatus === "result" || queryStatus === "loading"} fullScreen={true}
+                onClose={() => setQueryStatus("defining")}>
+            <AppBar position={"static"} style={{marginBottom: 10}}>
+                <Toolbar style={{padding: 5}}>
+                    <img
+                        src={"https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Universit%C3%A4t_Z%C3%BCrich_logo.svg/2000px-Universit%C3%A4t_Z%C3%BCrich_logo.svg.png"}
+                        style={{height: 50, width: "auto", marginRight: 10}}/>
+                    <Typography variant={"h4"} style={{flexGrow: 1}}>
+                        Results</Typography>
+                    <IconButton onClick={() => setQueryStatus("defining")}><Icon>close</Icon></IconButton>
+                </Toolbar>
+            </AppBar>
             <DialogContent>
+                {queryStatus === "loading" && <div style={{textAlign: "center"}}><CircularProgress/></div>}
+                {queryStatus === "result" &&
                 <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
                     {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item}
                                                                                                         cols={1}>
@@ -234,8 +250,7 @@ const MainPage: NextPage = () => {
                             </IconButton>
                         }/>
                     </GridListTile>))}
-                </GridList>
-                {JSON.stringify(filterCriteria)}
+                </GridList>}
             </DialogContent>
         </Dialog>
     </React.Fragment>)
