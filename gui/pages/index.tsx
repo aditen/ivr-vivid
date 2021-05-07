@@ -15,6 +15,7 @@ import {
     GridListTileBar,
     Icon,
     IconButton,
+    Slider,
     TextField,
     Toolbar,
     Typography,
@@ -39,11 +40,11 @@ const MainPage: NextPage = () => {
     const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
         locatedObjects: [],
         classNames: [],
-        gridWidth: isLargeScreen ? 8 : 4,
+        gridWidth: isLargeScreen ? 12 : 4,
         text: ""
     });
 
-    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 8 : 4}), [isLargeScreen]);
+    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 12 : 4}), [isLargeScreen]);
 
     const checkApiStatus = async () => {
         try {
@@ -206,6 +207,23 @@ const MainPage: NextPage = () => {
                                            ...filterCriteria,
                                            text: event.target.value
                                        })}/>
+                        </div>
+                        <div>
+                            <Typography gutterBottom>
+                                Grid width
+                            </Typography>
+                            <Slider
+                                value={filterCriteria.gridWidth}
+                                onChange={(event, value) => setFilterCriteria({
+                                    ...filterCriteria,
+                                    gridWidth: value as number
+                                })}
+                                valueLabelDisplay="auto"
+                                step={2}
+                                marks
+                                min={4}
+                                max={24}
+                            />
                         </div>
                         <CardActions>
                             <Button variant={"contained"} color={"primary"}
