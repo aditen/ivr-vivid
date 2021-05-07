@@ -9,6 +9,7 @@ import {
     CircularProgress,
     Dialog,
     DialogContent,
+    DialogTitle,
     Grid,
     GridList,
     GridListTile,
@@ -25,7 +26,15 @@ import * as React from "react";
 import {useEffect, useState} from "react";
 import Head from "next/dist/next-server/lib/head";
 import {Rnd} from "react-rnd";
-import {Autocomplete} from "@material-ui/lab";
+import {
+    Autocomplete,
+    Timeline,
+    TimelineConnector,
+    TimelineContent,
+    TimelineDot,
+    TimelineItem,
+    TimelineSeparator
+} from "@material-ui/lab";
 import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
 import axios from "axios";
 import {FilterCriteria} from "../src/FilterCriteria";
@@ -36,6 +45,7 @@ const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [resultMatrix, setResultMatrix] = useState<VividKeyframe[][]>([[]]);
+    const [keyframeToDisplay, setKeyframeToDisplay] = useState<VividKeyframe | undefined>();
     const [apiStatus, setApiStatus] = useState<'loading' | 'error' | 'online'>("loading");
     const [queryStatus, setQueryStatus] = useState<'defining' | 'loading' | 'result' | 'error'>();
     const isLargeScreen = useMediaQuery('(min-width:670px)');
@@ -265,15 +275,44 @@ const MainPage: NextPage = () => {
                         key={idx1 + "-" + idx2}
                         cols={1}>
                         <img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
-                        <GridListTileBar title={item.title} actionIcon={
+                        <GridListTileBar titlePosition={"top"} actionIcon={
                             <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
                                 <Icon>check</Icon>
+                            </IconButton>
+                        }/>
+                        <GridListTileBar title={item.title} actionIcon={
+                            <IconButton style={{color: "white"}} onClick={() => setKeyframeToDisplay(item)}>
+                                <Icon>info</Icon>
                             </IconButton>
                         }/>
                     </GridListTile>))}
                 </GridList>}
             </DialogContent>
         </Dialog>
+        {!!keyframeToDisplay &&
+        <Dialog maxWidth={"md"} fullWidth={true} open={!!keyframeToDisplay}
+                onClose={() => setKeyframeToDisplay(undefined)}>
+            <DialogTitle>
+                {keyframeToDisplay.title}
+                <IconButton size={"small"} style={{float: "right"}} onClick={() => setKeyframeToDisplay(undefined)}>
+                    <Icon>close</Icon>
+                </IconButton></DialogTitle>
+            <DialogContent>
+                <Typography component={"p"}>{keyframeToDisplay.description}</Typography>
+                <>
+                    {keyframeToDisplay.tags.map(tag => <Chip key={tag} label={tag}/>)}
+                </>
+                <Timeline align="alternate">
+                    {KeyframeUtils.getTimelineUrls(keyframeToDisplay).map(kfUrl => <TimelineItem key={kfUrl}>
+                        <TimelineSeparator>
+                            <TimelineDot/>
+                            <TimelineConnector/>
+                        </TimelineSeparator>
+                        <TimelineContent><img style={{width: "200px", height: "auto"}} src={kfUrl}/></TimelineContent>
+                    </TimelineItem>)}
+                </Timeline>
+            </DialogContent>
+        </Dialog>}
     </React.Fragment>)
 };
 

@@ -107,9 +107,7 @@ class QueryHandler:
             else:
                 to_fill.append(
                     i)  # in the win_map, some positions are not filled, so the win_map did not put any image to a position so we put the index of those positions in the to_fill(not the positions but their index i for the grid[i] (handled by the grid structure)
-        print(collided)
         collided = collided[::-1]
-        print(collided)
         for i in to_fill:
             position = np.unravel_index(i, (grid_h, grid_w))
             if len(collided) > 0:

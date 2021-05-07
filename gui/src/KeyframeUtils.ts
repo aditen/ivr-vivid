@@ -7,4 +7,16 @@ export class KeyframeUtils {
         }
         return "https://iten.engineering/files/keyframes/" + kf.video + "/shot" + kf.video + "_" + kf.idx + "_RKF.png";
     }
+
+    public static getTimelineUrls(kf: VividKeyframe): string[] {
+        const numToDisplay = 10;
+        const beginIndex = Math.max(Math.abs(kf.idx - numToDisplay / 2), 1);
+        const endIndex = Math.min(Math.abs(kf.idx + numToDisplay / 2), kf.totalKfsVid);
+        const resultArr = [];
+        for (let i = beginIndex; i <= endIndex; i++) {
+            resultArr.push("https://iten.engineering/files/keyframes/" + kf.video + "/shot" + kf.video + "_" + i + "_RKF.png");
+        }
+        console.log("Result array:", resultArr);
+        return resultArr;
+    }
 }
