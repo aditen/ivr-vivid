@@ -26,7 +26,7 @@ class FilterCriteria:
 @dataclass_json
 @dataclass
 class Keyframe:
-    name: str
+    title: str
     video: str
     idx: int
     totalKfsVid: int

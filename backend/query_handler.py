@@ -203,14 +203,13 @@ class QueryHandler:
             som_correct_paths = []
             for element in x:
                 if element is not None:
-                    new_string = element.replace(keyframe_root,
-                                                 "https://iten.engineering/files/keyframes/")
+                    parts = element.replace(keyframe_root, "").split("/")[1].replace("shot", "").replace("_RKF.png", "").split("_")
                     som_correct_paths.append(
-                        Keyframe(name=new_string, video="00032", idx=1, totalKfsVid=32, atTime="00:01:10",
+                        Keyframe(title=parts[0], video=parts[0], idx=int(parts[1]), totalKfsVid=int(parts[1]), atTime="00:01:10",
                                  description="Hello hello from the description", tags=['test1', 'test2']).to_dict())
                 else:
                     som_correct_paths.append(
-                        Keyframe(name="https://i.stack.imgur.com/6M513.png", video="00032", idx=32, totalKfsVid=32,
+                        Keyframe(title="n/A", video="00032", idx=32, totalKfsVid=32,
                                  atTime="00:01:10", description="N/A", tags=['N', 'A']).to_dict())
             som_correct_paths_complete.append(som_correct_paths)
         print("corrected som:", som_correct_paths_complete)

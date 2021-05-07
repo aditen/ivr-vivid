@@ -29,12 +29,13 @@ import {Autocomplete} from "@material-ui/lab";
 import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
 import axios from "axios";
 import {FilterCriteria} from "../src/FilterCriteria";
-import {Keyframe} from "../src/Keyframe";
+import {VividKeyframe} from "../src/VividKeyframe";
+import {KeyframeUtils} from "../src/KeyframeUtils";
 
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
-    const [resultMatrix, setResultMatrix] = useState<Keyframe[][]>([[]]);
+    const [resultMatrix, setResultMatrix] = useState<VividKeyframe[][]>([[]]);
     const [apiStatus, setApiStatus] = useState<'loading' | 'error' | 'online'>("loading");
     const [queryStatus, setQueryStatus] = useState<'defining' | 'loading' | 'result' | 'error'>();
     const isLargeScreen = useMediaQuery('(min-width:670px)');
@@ -73,7 +74,7 @@ const MainPage: NextPage = () => {
     const executeQuery = async () => {
         try {
             setQueryStatus("loading");
-            const res = await axios.post<Keyframe[][]>("http://localhost:5000/execute_query", {
+            const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", {
                 ...filterCriteria,
                 text: !!filterCriteria.text ? filterCriteria.text : null
             });
@@ -219,7 +220,7 @@ const MainPage: NextPage = () => {
                                     ...filterCriteria,
                                     gridWidth: value as number
                                 })}
-                                valueLabelDisplay="auto"
+                                valueLabelDisplay="on"
                                 step={2}
                                 marks
                                 min={4}
@@ -260,10 +261,11 @@ const MainPage: NextPage = () => {
                 {queryStatus === "loading" && <div style={{textAlign: "center"}}><CircularProgress/></div>}
                 {queryStatus === "result" &&
                 <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
-                    {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item.name}
-                                                                                                        cols={1}>
-                        <img style={{width: "100%", height: "auto"}} src={item.name}/>
-                        <GridListTileBar title={"00032"} actionIcon={
+                    {resultMatrix.map((matRow, idx1) => matRow.filter(item => !!item).map((item, idx2) => <GridListTile
+                        key={idx1 + "-" + idx2}
+                        cols={1}>
+                        <img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
+                        <GridListTileBar title={item.title} actionIcon={
                             <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
                                 <Icon>check</Icon>
                             </IconButton>

@@ -1,5 +1,5 @@
-export interface Keyframe {
-    name: string
+export interface VividKeyframe {
+    title: string
     video: string
     idx: number
     totalKfsVid: number

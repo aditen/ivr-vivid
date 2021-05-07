@@ -1,4 +1,5 @@
 flask
+flask-swagger-ui
 flask-cors
 gensim
 dataclasses-json

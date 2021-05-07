@@ -1,6 +1,8 @@
+import json
+
 from flask import Flask, Response, request
 from flask_cors import CORS
-import json
+from flask_swagger_ui import get_swaggerui_blueprint
 
 from class_name_suggester import ClassNameSuggester
 from data_classes import FilterCriteria
@@ -11,6 +13,22 @@ CORS(app)
 
 suggester = ClassNameSuggester()
 query_handler = QueryHandler()
+
+SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
+# TODO: write one that is correct
+API_URL = 'http://petstore.swagger.io/v2/swagger.json'  # Our API url (can of course be a local resource)
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    API_URL,
+    config={  # Swagger UI config overrides
+        'app_name': "ViViD REST Documentation"
+    },
+)
+
+app.register_blueprint(swaggerui_blueprint)
+
 
 @app.route('/execute_query', methods=['POST'])
 def execute_query():
