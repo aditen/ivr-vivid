@@ -8,12 +8,12 @@ from PIL import Image
 from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
 
-from data_classes import FilterCriteria
+from data_classes import FilterCriteria, Keyframe
 
 prediction_root = os.getenv(key="PREDICTIONS_ROOT",
                             default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
 keyframe_root = os.getenv(key="KEYFRAME_ROOT",
-                            default='D:/keyframes/')
+                          default='D:/keyframes/')
 
 
 def find_index_from_image(img, image_data):  # this function finds the index of the image within the image_data
@@ -128,7 +128,7 @@ class QueryHandler:
                     location_grid[row_index][column_index] = None
         return location_grid
 
-    def handle_query(self, filter_criteria: FilterCriteria) -> List[List[str]]:
+    def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
         number_of_yolo_queries = len(filter_criteria.locatedObjects)
         number_of_nasnet_queries = len(filter_criteria.classNames)
         sorted_shotframes = list()
@@ -205,9 +205,13 @@ class QueryHandler:
                 if element is not None:
                     new_string = element.replace(keyframe_root,
                                                  "https://iten.engineering/files/keyframes/")
-                    som_correct_paths.append(new_string)
+                    som_correct_paths.append(
+                        Keyframe(name=new_string, video="00032", idx=1, totalKfsVid=32, atTime="00:01:10",
+                                 description="Hello hello from the description", tags=['test1', 'test2']).to_dict())
                 else:
-                    som_correct_paths.append("https://i.stack.imgur.com/6M513.png")
+                    som_correct_paths.append(
+                        Keyframe(name="https://i.stack.imgur.com/6M513.png", video="00032", idx=32, totalKfsVid=32,
+                                 atTime="00:01:10", description="N/A", tags=['N', 'A']).to_dict())
             som_correct_paths_complete.append(som_correct_paths)
         print("corrected som:", som_correct_paths_complete)
 

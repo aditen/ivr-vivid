@@ -21,3 +21,15 @@ class FilterCriteria:
     classNames: List[str]
     gridWidth: int
     text: Optional[str] = None
+
+
+@dataclass_json
+@dataclass
+class Keyframe:
+    name: str
+    video: str
+    idx: int
+    totalKfsVid: int
+    atTime: str
+    description: str
+    tags: List[str]

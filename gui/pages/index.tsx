@@ -29,11 +29,12 @@ import {Autocomplete} from "@material-ui/lab";
 import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
 import axios from "axios";
 import {FilterCriteria} from "../src/FilterCriteria";
+import {Keyframe} from "../src/Keyframe";
 
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
-    const [resultMatrix, setResultMatrix] = useState<string[][]>([[]]);
+    const [resultMatrix, setResultMatrix] = useState<Keyframe[][]>([[]]);
     const [apiStatus, setApiStatus] = useState<'loading' | 'error' | 'online'>("loading");
     const [queryStatus, setQueryStatus] = useState<'defining' | 'loading' | 'result' | 'error'>();
     const isLargeScreen = useMediaQuery('(min-width:670px)');
@@ -72,7 +73,7 @@ const MainPage: NextPage = () => {
     const executeQuery = async () => {
         try {
             setQueryStatus("loading");
-            const res = await axios.post<string[][]>("http://localhost:5000/execute_query", {
+            const res = await axios.post<Keyframe[][]>("http://localhost:5000/execute_query", {
                 ...filterCriteria,
                 text: !!filterCriteria.text ? filterCriteria.text : null
             });
@@ -210,7 +211,7 @@ const MainPage: NextPage = () => {
                         </div>
                         <div>
                             <Typography gutterBottom>
-                                Grid width
+                                Grid Width
                             </Typography>
                             <Slider
                                 value={filterCriteria.gridWidth}
@@ -259,9 +260,9 @@ const MainPage: NextPage = () => {
                 {queryStatus === "loading" && <div style={{textAlign: "center"}}><CircularProgress/></div>}
                 {queryStatus === "result" &&
                 <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
-                    {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item}
+                    {resultMatrix.map(matRow => matRow.filter(item => !!item).map(item => <GridListTile key={item.name}
                                                                                                         cols={1}>
-                        <img style={{width: "100%", height: "auto"}} src={item}/>
+                        <img style={{width: "100%", height: "auto"}} src={item.name}/>
                         <GridListTileBar title={"00032"} actionIcon={
                             <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
                                 <Icon>check</Icon>
