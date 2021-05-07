@@ -1,11 +1,19 @@
-from typing import List
-from PIL import Image
-import numpy as np
-from xpysom import XPySom
-from sklearn.preprocessing import StandardScaler
-from data_classes import FilterCriteria
+import os
 from math import ceil
+from typing import List
+
+import numpy as np
 import pandas as pd
+from PIL import Image
+from sklearn.preprocessing import StandardScaler
+from xpysom import XPySom
+
+from data_classes import FilterCriteria
+
+prediction_root = os.getenv(key="PREDICTIONS_ROOT",
+                            default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
+keyframe_root = os.getenv(key="KEYFRAME_ROOT",
+                            default='D:/keyframes/')
 
 
 def find_index_from_image(img, image_data):  # this function finds the index of the image within the image_data
@@ -16,37 +24,47 @@ def find_index_from_image(img, image_data):  # this function finds the index of 
 
 class QueryHandler:
     def __init__(self):
+        self.nasnet = pd.read_csv(prediction_root + 'nasnet_formated.csv')
+        self.yolo = pd.read_csv(prediction_root + 'yolo.csv',
+                                index_col="idx")
+        self.ocr_data = pd.read_csv(prediction_root + 'combinedOCR.csv').dropna(
+            subset=['output'])
+
         print("Initialized query handler")
 
     def get_shots_based_on_yolo_position_and_class(self, yolo, query_position, class_query):
-        query_filter=yolo[yolo["class"]==class_query]
+        query_filter = yolo[yolo["class"] == class_query]
         b = query_position
-        confidence_filter=query_filter[query_filter["confidence"]>=0.5]
-        confidence_filter["distance_to_query"] = confidence_filter.apply(lambda row : np.linalg.norm((row['centerX'],
-                      row['centerY'])-b), axis = 1)
-        position_filter= confidence_filter[confidence_filter["distance_to_query"]<0.1]["filename"]
-        query_result_shotframes=list(set(map(lambda x: x[:-8], position_filter))) #unique frames that contain the class query
-        positions= confidence_filter[confidence_filter["distance_to_query"]<0.1][['filename', 'centerX', 'centerY']]
+        confidence_filter = query_filter[query_filter["confidence"] >= 0.5]
+        confidence_filter["distance_to_query"] = confidence_filter.apply(lambda row: np.linalg.norm((row['centerX'],
+                                                                                                     row[
+                                                                                                         'centerY']) - b),
+                                                                         axis=1)
+        position_filter = confidence_filter[confidence_filter["distance_to_query"] < 0.1]["filename"]
+        query_result_shotframes = list(
+            set(map(lambda x: x[:-8], position_filter)))  # unique frames that contain the class query
+        positions = confidence_filter[confidence_filter["distance_to_query"] < 0.1][['filename', 'centerX', 'centerY']]
         positions = positions.sort_values(by='filename')
         sorted_shotframes = positions['filename']
         X = positions['centerX'].to_numpy()
         Y = positions['centerY'].to_numpy()
         numberofshots_in_query = len(X)
         print(numberofshots_in_query)
-        sorted_shotframes=list(map(lambda x: x[:-8], sorted_shotframes)) #unique frames that contain the class query
+        sorted_shotframes = list(map(lambda x: x[:-8], sorted_shotframes))  # unique frames that contain the class query
         return sorted_shotframes, numberofshots_in_query
 
     def get_shots_based_nasnet_class(self, nasnet, class_query):
-        query_filter=nasnet[nasnet["class"]==class_query]
-        confidence_filter=query_filter[query_filter["confidence"]>=0.5]["filename"]
-        query_result_shotframes=list(set(map(lambda x: x[:-8], confidence_filter))) #unique frames that contain the class query
-        sorted_shotframes=sorted(query_result_shotframes)
+        query_filter = nasnet[nasnet["class"] == class_query]
+        confidence_filter = query_filter[query_filter["confidence"] >= 0.5]["filename"]
+        query_result_shotframes = list(
+            set(map(lambda x: x[:-8], confidence_filter)))  # unique frames that contain the class query
+        sorted_shotframes = sorted(query_result_shotframes)
         numberofshots_in_query = len(sorted_shotframes)
         return sorted_shotframes, numberofshots_in_query
 
     def get_shots_based_ocr_text(self, ocr_data, text_query):
-        sorted_shotframes=sorted(ocr_data[ocr_data['output'].str.contains(text_query)]["filename"])
-        query_result_shotframes=list(map(lambda x: x[:-8], sorted_shotframes))
+        sorted_shotframes = sorted(ocr_data[ocr_data['output'].str.contains(text_query)]["filename"])
+        query_result_shotframes = list(map(lambda x: x[:-8], sorted_shotframes))
         numberofshots_in_query = len(query_result_shotframes)
         return query_result_shotframes, numberofshots_in_query
 
@@ -116,84 +134,81 @@ class QueryHandler:
         sorted_shotframes = list()
 
         if number_of_yolo_queries > 0:
-            yolo = pd.read_csv('/home/jonaslaura/Documents/ivr-vivid-main/backend/features_data/yolo.csv', index_col="idx")
-
             # get filtercriterias from canvas
-            yolo_class_query=filter_criteria.locatedObjects[0].className
+            yolo_class_query = filter_criteria.locatedObjects[0].className
             x_offset = filter_criteria.locatedObjects[0].xOffset
             y_offset = filter_criteria.locatedObjects[0].yOffset
             width = filter_criteria.locatedObjects[0].width
             height = filter_criteria.locatedObjects[0].height
 
             # parse position to float between 0 and 1.
-            #to do: access information in isLargeScreen, if no, 640 -> 344px, and 360 -> 171
-            x_position = (x_offset +(width/2))/640
-            y_position = (y_offset +(height/2))/360
+            # to do: access information in isLargeScreen, if no, 640 -> 344px, and 360 -> 171
+            x_position = (x_offset + (width / 2)) / 640
+            y_position = (y_offset + (height / 2)) / 360
             queryPosition = np.array((x_position, y_position))
             print(queryPosition)
-            sorted_shotframes, numberofshots_in_query = self.get_shots_based_on_yolo_position_and_class(yolo, queryPosition, yolo_class_query)
-            print("Yolo lenght" , numberofshots_in_query)
+            sorted_shotframes, numberofshots_in_query = self.get_shots_based_on_yolo_position_and_class(self.yolo,
+                                                                                                        queryPosition,
+                                                                                                        yolo_class_query)
+            print("Yolo lenght", numberofshots_in_query)
 
         if number_of_nasnet_queries > 0:
-            nasnet = pd.read_csv('/home/jonaslaura/Documents/ivr-vivid-main/backend/features_data/nasnet_formated.csv')
-            #get filter criterias Nasnet
+            # get filter criterias Nasnet
             nasnet_class_query = filter_criteria.classNames[0]
             print("Nasnet query:", nasnet_class_query)
-            sorted_shotframes_nasnet, numberofshots_in_query = self.get_shots_based_nasnet_class(nasnet, nasnet_class_query)
-            print("Nasnet lenght" , numberofshots_in_query)
+            sorted_shotframes_nasnet, numberofshots_in_query = self.get_shots_based_nasnet_class(self.nasnet,
+                                                                                                 nasnet_class_query)
+            print("Nasnet lenght", numberofshots_in_query)
             if len(sorted_shotframes) > 0:
                 sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_nasnet)
             else:
                 sorted_shotframes = sorted_shotframes_nasnet
 
         if filter_criteria.text is not None:
-            #get filter criterias text (OCR)
-            ocr_data = pd.read_csv('/home/jonaslaura/Documents/ivr-vivid-main/backend/features_data/combinedOCR.csv')
-            ocr_data = ocr_data.dropna(subset=['output'])
+            # get filter criterias text (OCR)
             text_query = filter_criteria.text
             print("text query:", text_query)
-            sorted_shotframes_text, numberofshots_in_query = self.get_shots_based_ocr_text(ocr_data, text_query)
-            print("Final lenght" , numberofshots_in_query)
+            sorted_shotframes_text, numberofshots_in_query = self.get_shots_based_ocr_text(self.ocr_data, text_query)
+            print("Final lenght", numberofshots_in_query)
             if len(sorted_shotframes) > 0:
                 sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_text)
             else:
                 sorted_shotframes = sorted_shotframes_text
 
-        print("Final lenght" , len(sorted_shotframes))
+        print("Final length", len(sorted_shotframes))
 
-        all_kf_test = ["https://iten.engineering/files/keyframes/00032/shot00032_" +
-                       str(i) + "_RKF.png" for i in range(1, 32)]
+        all_kf_test = list(
+            map(lambda x: keyframe_root + x[4:9] + "/" + x + "_RKF.png", sorted_shotframes))
 
-        #print("original version", all_kf_test)
-
-        all_kf_test=list(map(lambda x: '/media/jonaslaura/Spassspass/keyframes/'+ x[4:9]+"/"+x+"_RKF.png", sorted_shotframes))
-
-        #print("real results", all_kf_test)
+        # print("real results", all_kf_test)
         # 1: Laura filters the keyframes
         print("Filtered all keyframes")
         print(filter_criteria.gridWidth)
         print(ceil(len(all_kf_test) / filter_criteria.gridWidth))
         # 2: Baris does the SOM on the keyframes
-        som_map = self.produce_SOM_grid(all_kf_test,
-                                        filter_criteria.gridWidth,
-                                        ceil(len(all_kf_test) / filter_criteria.gridWidth),
-                                        10) 
+        if len(all_kf_test) > 0:
+            som_map = self.produce_SOM_grid(all_kf_test,
+                                            filter_criteria.gridWidth,
+                                            ceil(float(len(all_kf_test)) / filter_criteria.gridWidth),
+                                            10)
+        else:
+            som_map = np.array([[]])
         list_som = som_map.tolist()
+
         print("Done som:", list_som)
-        
+
         som_correct_paths_complete = []
 
         for x in list_som:
             som_correct_paths = []
-            for element in x: 
+            for element in x:
                 if element is not None:
-                    new_string = element.replace("/media/jonaslaura/Spassspass/keyframes", "https://iten.engineering/files/keyframes")
+                    new_string = element.replace(keyframe_root,
+                                                 "https://iten.engineering/files/keyframes/")
                     som_correct_paths.append(new_string)
                 else:
-                    som_correct_paths.append(None)   
+                    som_correct_paths.append("https://i.stack.imgur.com/6M513.png")
             som_correct_paths_complete.append(som_correct_paths)
         print("corrected som:", som_correct_paths_complete)
-       
-        return som_correct_paths
-        
 
+        return som_correct_paths_complete
