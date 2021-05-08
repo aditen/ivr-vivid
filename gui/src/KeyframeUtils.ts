@@ -16,7 +16,6 @@ export class KeyframeUtils {
         for (let i = beginIndex; i <= endIndex; i++) {
             resultArr.push("https://iten.engineering/files/keyframes/" + kf.video + "/shot" + kf.video + "_" + i + "_RKF.png");
         }
-        console.log("Result array:", resultArr);
         return resultArr;
     }
 }

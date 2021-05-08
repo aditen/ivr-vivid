@@ -127,6 +127,7 @@ class QueryHandler:
         return location_grid
 
     def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
+        print("Filtering according to criteria", filter_criteria)
         number_of_yolo_queries = len(filter_criteria.locatedObjects)
         number_of_nasnet_queries = len(filter_criteria.classNames)
         sorted_shotframes = list()
@@ -144,11 +145,10 @@ class QueryHandler:
             x_position = (x_offset + (width / 2)) / 640
             y_position = (y_offset + (height / 2)) / 360
             queryPosition = np.array((x_position, y_position))
-            print(queryPosition)
             sorted_shotframes, numberofshots_in_query = self.get_shots_based_on_yolo_position_and_class(self.yolo,
                                                                                                         queryPosition,
                                                                                                         yolo_class_query)
-            print("Yolo lenght", numberofshots_in_query)
+            print("Yolo length", numberofshots_in_query)
 
         if number_of_nasnet_queries > 0:
             # get filter criterias Nasnet
@@ -156,7 +156,7 @@ class QueryHandler:
             print("Nasnet query:", nasnet_class_query)
             sorted_shotframes_nasnet, numberofshots_in_query = self.get_shots_based_nasnet_class(self.nasnet,
                                                                                                  nasnet_class_query)
-            print("Nasnet lenght", numberofshots_in_query)
+            print("Nasnet length", numberofshots_in_query)
             if len(sorted_shotframes) > 0:
                 sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_nasnet)
             else:
@@ -167,7 +167,6 @@ class QueryHandler:
             text_query = filter_criteria.text
             print("text query:", text_query)
             sorted_shotframes_text, numberofshots_in_query = self.get_shots_based_ocr_text(self.ocr_data, text_query)
-            print("Final lenght", numberofshots_in_query)
             if len(sorted_shotframes) > 0:
                 sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_text)
             else:
@@ -178,11 +177,8 @@ class QueryHandler:
         all_kf_test = list(
             map(lambda x: keyframe_root + x[4:9] + "/" + x + "_RKF.png", sorted_shotframes))
 
-        # print("real results", all_kf_test)
         # 1: Laura filters the keyframes
         print("Filtered all keyframes")
-        print(filter_criteria.gridWidth)
-        print(ceil(len(all_kf_test) / filter_criteria.gridWidth))
         # 2: Baris does the SOM on the keyframes
         if len(all_kf_test) > 0:
             som_map = self.produce_SOM_grid(all_kf_test,

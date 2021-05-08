@@ -43,6 +43,7 @@ import {KeyframeUtils} from "../src/KeyframeUtils";
 
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
+    const [minQuantity, setMinQuantity] = useState<number>(1);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [resultMatrix, setResultMatrix] = useState<VividKeyframe[][]>([[]]);
     const [keyframeToDisplay, setKeyframeToDisplay] = useState<VividKeyframe | undefined>();
@@ -51,6 +52,7 @@ const MainPage: NextPage = () => {
     const isLargeScreen = useMediaQuery('(min-width:670px)');
     const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
         locatedObjects: [],
+        minQuantities: [],
         classNames: [],
         gridWidth: isLargeScreen ? 12 : 4,
         text: ""
@@ -94,6 +96,30 @@ const MainPage: NextPage = () => {
             console.error(e);
             setQueryStatus("error");
             alert("Error! Please reload page! If you see this again, contact the admin.");
+        }
+    };
+
+    const addYoloObject = () => {
+        if (minQuantity < 2) {
+            setFilterCriteria({
+                ...filterCriteria, locatedObjects: [...filterCriteria.locatedObjects, {
+                    className: typeToAdd,
+                    height: 100,
+                    width: 100,
+                    xOffset: isLargeScreen ? 270 : 122,
+                    yOffset: isLargeScreen ? 130 : 35
+                }]
+            });
+            setMinQuantity(1);
+        } else {
+            setFilterCriteria({
+                ...filterCriteria,
+                minQuantities: [...filterCriteria.minQuantities.filter(value => value.className !== typeToAdd), {
+                    className: typeToAdd,
+                    minQuantity: minQuantity
+                }]
+            });
+            setMinQuantity(1);
         }
     };
 
@@ -162,22 +188,43 @@ const MainPage: NextPage = () => {
                                 onChange={(event, newValue) => {
                                     setTypeToAdd(newValue as YoloClassName);
                                 }}
+                                value={typeToAdd}
                                 options={YoloTypesAsArray}
                                 fullWidth={true}
                                 renderInput={(params) => <TextField {...params} label="Choose object..."
                                                                     variant="outlined"/>}
                             />
-                            <IconButton disabled={!typeToAdd} style={{marginLeft: 10}} onClick={() => {
-                                setFilterCriteria({
-                                    ...filterCriteria, locatedObjects: [...filterCriteria.locatedObjects, {
-                                        className: typeToAdd,
-                                        height: 100,
-                                        width: 100,
-                                        xOffset: isLargeScreen ? 270 : 122,
-                                        yOffset: isLargeScreen ? 130 : 35
-                                    }]
-                                })
+                            <TextField style={{marginLeft: 10, marginRight: 10}}
+                                       label="Min Quantity"
+                                       inputProps={{min: 1}}
+                                       disabled={!typeToAdd}
+                                       value={minQuantity === null ? '' : minQuantity}
+                                       onChange={event => setMinQuantity(Number.parseInt(event.target.value))}
+                                       type="number"
+                                       InputLabelProps={{
+                                           shrink: true
+                                       }}
+                                       variant="outlined"
+                            />
+                            <IconButton disabled={!typeToAdd} onClick={() => {
+                                addYoloObject();
                             }}><Icon>add</Icon></IconButton>
+                        </div>
+                        <div>
+                            {filterCriteria.minQuantities.map((cls, clsIdx) => <Chip variant={"outlined"}
+                                                                                     style={{
+                                                                                         marginTop: 10,
+                                                                                         marginRight: 5
+                                                                                     }}
+                                                                                     key={clsIdx}
+                                                                                     label={cls.className + " ≥ " + cls.minQuantity}
+                                                                                     onDelete={() => {
+                                                                                         setFilterCriteria({
+                                                                                             ...filterCriteria,
+                                                                                             minQuantities: [...filterCriteria.minQuantities.filter(minQuant => minQuant.className !== cls.className)]
+                                                                                         })
+                                                                                     }}
+                            />)}
                         </div>
                         <div style={{marginTop: 15, marginBottom: 15}}>
                             <Autocomplete
@@ -239,16 +286,19 @@ const MainPage: NextPage = () => {
                         </div>
                         <CardActions>
                             <Button variant={"contained"} color={"primary"}
-                                    disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
+                                    disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.minQuantities.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
                                     onClick={() => executeQuery()}><Icon>done</Icon>Submit</Button>
                             <Button variant={"contained"} color={"secondary"} onClick={() => {
                                 setFilterCriteria({
                                     locatedObjects: [],
+                                    minQuantities: [],
                                     classNames: [],
                                     gridWidth: filterCriteria.gridWidth,
                                     text: ""
                                 });
                                 setClassSuggestions([]);
+                                setMinQuantity(1);
+                                setTypeToAdd(null);
                             }}><Icon>delete</Icon>Clear</Button>
                         </CardActions>
                     </CardContent>
