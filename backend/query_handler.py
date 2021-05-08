@@ -1,4 +1,5 @@
 import os
+import json
 from math import ceil
 from typing import List
 
@@ -29,6 +30,8 @@ class QueryHandler:
                                 index_col="idx")
         self.ocr_data = pd.read_csv(prediction_root + 'combinedOCR.csv').dropna(
             subset=['output'])
+        self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv', dtype=str)
+        self.video_data = pd.read_csv(prediction_root + 'descriptions.csv')
 
         print("Initialized query handler")
 
@@ -197,10 +200,16 @@ class QueryHandler:
             som_correct_paths = []
             for element in x:
                 if element is not None:
-                    parts = element.replace(keyframe_root, "").split("/")[1].replace("shot", "").replace("_RKF.png", "").split("_")
+                    video, kf_idx = element.replace(keyframe_root, "").split("/")[1].replace("shot", "").replace(
+                        "_RKF.png", "").split("_")
+                    desc_filtered = self.video_data[self.video_data.videoname == int(video)]
+                    title, description, tags = desc_filtered.title.iloc[0], desc_filtered.description.iloc[0], desc_filtered.tags.iloc[0]
+                    # this is because else nan is written into JSON -> makes the GUI crash
+                    if description != description:
+                        description = ''
                     som_correct_paths.append(
-                        Keyframe(title=parts[0], video=parts[0], idx=int(parts[1]), totalKfsVid=int(parts[1]), atTime="00:01:10",
-                                 description="Hello hello from the description", tags=['test1', 'test2']).to_dict())
+                        Keyframe(title=title, video=video, idx=int(kf_idx), totalKfsVid=int(kf_idx), atTime="00:01:10",
+                                 description=description, tags=json.loads(tags.replace("'", '"'))).to_dict())
                 else:
                     som_correct_paths.append(
                         Keyframe(title="n/A", video="00032", idx=32, totalKfsVid=32,

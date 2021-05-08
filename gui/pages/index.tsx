@@ -92,6 +92,7 @@ const MainPage: NextPage = () => {
             });
             setResultMatrix(res.data);
             setQueryStatus("result");
+            setApiStatus("online");
         } catch (e) {
             console.error(e);
             setQueryStatus("error");
@@ -307,7 +308,7 @@ const MainPage: NextPage = () => {
         </Grid>
         <Dialog open={queryStatus === "result" || queryStatus === "loading"} fullScreen={true}
                 onClose={() => setQueryStatus("defining")}>
-            <AppBar position={"static"} style={{marginBottom: 10}}>
+            <AppBar color={"secondary"} position={"static"} style={{marginBottom: 10}}>
                 <Toolbar style={{padding: 5}}>
                     <img
                         src={"https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Universit%C3%A4t_Z%C3%BCrich_logo.svg/2000px-Universit%C3%A4t_Z%C3%BCrich_logo.svg.png"}
@@ -350,7 +351,7 @@ const MainPage: NextPage = () => {
             <DialogContent>
                 <Typography component={"p"}>{keyframeToDisplay.description}</Typography>
                 <>
-                    {keyframeToDisplay.tags.map(tag => <Chip key={tag} label={tag}/>)}
+                    {keyframeToDisplay.tags.map(tag => <Chip style={{margin: 5}} key={tag} label={tag}/>)}
                 </>
                 <Timeline align="alternate">
                     {KeyframeUtils.getTimelineUrls(keyframeToDisplay).map(kfUrl => <TimelineItem key={kfUrl}>
