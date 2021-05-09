@@ -322,20 +322,22 @@ const MainPage: NextPage = () => {
                 {queryStatus === "loading" && <div style={{textAlign: "center"}}><CircularProgress/></div>}
                 {queryStatus === "result" &&
                 <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
-                    {resultMatrix.map((matRow, idx1) => matRow.filter(item => !!item).map((item, idx2) => <GridListTile
+                    {resultMatrix.map((matRow, idx1) => matRow.map((item, idx2) => <GridListTile
                         key={idx1 + "-" + idx2}
                         cols={1}>
-                        <img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
-                        <GridListTileBar titlePosition={"top"} actionIcon={
-                            <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
-                                <Icon>check</Icon>
-                            </IconButton>
-                        }/>
-                        <GridListTileBar title={item.title} actionIcon={
-                            <IconButton style={{color: "white"}} onClick={() => setKeyframeToDisplay(item)}>
-                                <Icon>info</Icon>
-                            </IconButton>
-                        }/>
+                        {!!item && <><img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
+                            <GridListTileBar titlePosition={"top"} actionIcon={
+                                <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
+                                    <Icon>check</Icon>
+                                </IconButton>
+                            }/>
+                            <GridListTileBar title={item.title} actionIcon={
+                                <IconButton style={{color: "white"}} onClick={() => setKeyframeToDisplay(item)}>
+                                    <Icon>info</Icon>
+                                </IconButton>
+                            }/></>}
+                        {!item &&
+                        <img style={{width: "100%", height: "auto"}} src="https://i.stack.imgur.com/6M513.png"/>}
                     </GridListTile>))}
                 </GridList>}
             </DialogContent>

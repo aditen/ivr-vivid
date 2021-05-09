@@ -1,8 +1,11 @@
-import os
 import json
+import os
+import re
+from html import unescape
 from math import ceil
 from typing import List
 
+import mariadb
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -10,6 +13,8 @@ from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
 
 from data_classes import FilterCriteria, Keyframe
+
+HTML_TAG_RE = re.compile(r'<[^>]+>')
 
 prediction_root = os.getenv(key="PREDICTIONS_ROOT",
                             default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
@@ -23,15 +28,97 @@ def find_index_from_image(img, image_data):  # this function finds the index of 
             return index
 
 
+# SELECT distinct video_fk, frame FROM ivr.nasnet_classification where class in ('suit', 'lab_coat') and confidence > 0.25 order by rand() limit 250;
+# SELECT video_fk, frame FROM ivr.yolo_detection ivr1 where ivr1.class = 'sink' and ivr1.confidence > 0.5 and
+# exists(select video_fk, frame from ivr.yolo_detection ivr2 where ivr2.class = 'person' and ivr2.confidence > 0.5 and ivr2.video_fk = ivr1.video_fk and ivr2.frame = ivr1.frame);
+
 class QueryHandler:
     def __init__(self):
         self.nasnet = pd.read_csv(prediction_root + 'nasnet_formated.csv')
         self.yolo = pd.read_csv(prediction_root + 'yolo.csv',
-                                index_col="idx")
+                                index_col="idx", dtype=str)
         self.ocr_data = pd.read_csv(prediction_root + 'combinedOCR.csv').dropna(
             subset=['output'])
-        self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv', dtype=str)
-        self.video_data = pd.read_csv(prediction_root + 'descriptions.csv')
+        self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv')
+        self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
+                                             database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
+        self.cursor = self.db_connection.cursor()
+
+        self.cursor.execute(
+            "SELECT id,title FROM videos WHERE id=?",
+            ('00032',))
+
+        if self.cursor.fetchone() is None:
+            jsons = []
+            for filename in os.listdir("C:/Users/41789/Documents/uni/fs21/video_retrieval/info"):
+                with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
+                          encoding="latin-1") as f:  # open in readonly mode
+                    json_obj = json.loads(f.read().encode("utf8"))
+                    jsons.append((json_obj['v3cId'], json_obj['title'], json.dumps(json_obj['tags']),
+                                  unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
+            sql = "INSERT INTO videos(id, title, tags, description) VALUES (?, ?, ?, ?)"
+            self.cursor.executemany(sql, jsons)
+            self.db_connection.commit()
+        else:
+            print("Video table is ready!")
+
+        self.cursor.execute(
+            "SELECT video_fk FROM yolo_detection WHERE video_fk=?",
+            ('00032',))
+
+        if self.cursor.fetchone() is None:
+            data = []
+            for index, row in self.yolo.iterrows():
+                data.append((row['video'], int(row['frame']),
+                             row['class'], float(row['centerX']), float(row['centerY']), float(row['width']),
+                             float(row['height']), float(row['confidence'])
+                             ))
+            sql = "INSERT INTO yolo_detection(video_fk, frame, class, center_x, center_y, width, height, confidence) " \
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            self.cursor.executemany(sql, data)
+            self.db_connection.commit()
+        else:
+            print(len(self.yolo))
+            print("Yolo table is ready!")
+
+        self.cursor.execute(
+            "SELECT video_fk FROM nasnet_classification WHERE video_fk=?",
+            ('00032',))
+
+        if self.cursor.fetchone() is None:
+            data = []
+            for index, row in self.nasnet.iterrows():
+                filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
+                data.append((filename_parts[0], int(filename_parts[1]), row['class'], row['confidence']))
+            sql = "INSERT INTO nasnet_classification(video_fk, frame, class, confidence) " \
+                  "VALUES (?, ?, ?, ?)"
+            self.cursor.executemany(sql, data)
+            self.db_connection.commit()
+        else:
+            print(len(self.nasnet))
+            print("Nasnet table is ready!")
+
+        self.cursor.execute(
+            "SELECT video_fk FROM tesseract_text WHERE video_fk=?",
+            ('00032',))
+
+        if self.cursor.fetchone() is None:
+            data = []
+            for index, row in self.ocr_data.iterrows():
+                filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
+                data.append((filename_parts[0], int(filename_parts[1]), row['output']))
+            sql = "INSERT INTO tesseract_text(video_fk, frame, text) " \
+                  "VALUES (?, ?, ?)"
+            self.cursor.executemany(sql, data)
+            self.db_connection.commit()
+        else:
+            print(len(self.ocr_data))
+            print("Tesseract table is ready!")
+
+        self.cursor.execute('SELECT id, description, tags, title FROM videos')
+        self.video_map = {}
+        for vid_id, description, tags, title in self.cursor.fetchall():
+            self.video_map[vid_id] = (description, tags, title)
 
         print("Initialized query handler")
 
@@ -202,18 +289,12 @@ class QueryHandler:
                 if element is not None:
                     video, kf_idx = element.replace(keyframe_root, "").split("/")[1].replace("shot", "").replace(
                         "_RKF.png", "").split("_")
-                    desc_filtered = self.video_data[self.video_data.videoname == int(video)]
-                    title, description, tags = desc_filtered.title.iloc[0], desc_filtered.description.iloc[0], desc_filtered.tags.iloc[0]
-                    # this is because else nan is written into JSON -> makes the GUI crash
-                    if description != description:
-                        description = ''
+                    description, tags, title = self.video_map[video]
                     som_correct_paths.append(
                         Keyframe(title=title, video=video, idx=int(kf_idx), totalKfsVid=int(kf_idx), atTime="00:01:10",
                                  description=description, tags=json.loads(tags.replace("'", '"'))).to_dict())
                 else:
-                    som_correct_paths.append(
-                        Keyframe(title="n/A", video="00032", idx=32, totalKfsVid=32,
-                                 atTime="00:01:10", description="N/A", tags=['N', 'A']).to_dict())
+                    som_correct_paths.append(None)
             som_correct_paths_complete.append(som_correct_paths)
         print("corrected som:", som_correct_paths_complete)
 

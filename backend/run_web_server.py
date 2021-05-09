@@ -11,8 +11,8 @@ from query_handler import QueryHandler
 app = Flask(__name__)
 CORS(app)
 
-suggester = ClassNameSuggester()
 query_handler = QueryHandler()
+suggester = ClassNameSuggester()
 
 SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
 # TODO: write one that is correct
