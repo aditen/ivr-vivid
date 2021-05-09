@@ -34,4 +34,4 @@ class ClassNameSuggester:
                             best_candidate = sim_candidate
         res = sorted(distances_to_word.items(), key=operator.itemgetter(1), reverse=True)[:10]
         similar = list(list(zip(*res))[0])
-        return [s.replace("_", " ") for s in similar]
+        return similar #[s.replace("_", " ") for s in similar]

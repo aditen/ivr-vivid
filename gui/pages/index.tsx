@@ -243,9 +243,10 @@ const MainPage: NextPage = () => {
                                 filterOptions={(options: string[]) => {
                                     return options.filter(option => filterCriteria.classNames.indexOf(option) === -1);
                                 }}
+                                renderOption={option => option.replace("_", " ")}
                                 options={classSuggestions}
                                 fullWidth={true}
-                                renderInput={(params) => <TextField {...params} label="Choose potential image class..."
+                                renderInput={(params) => <TextField {...params} label="Enter image class..."
                                                                     variant="outlined"/>}
                             />
                         </div>
@@ -253,7 +254,7 @@ const MainPage: NextPage = () => {
                             {filterCriteria.classNames.map((cls, clsIdx) => <Chip variant={"outlined"}
                                                                                   style={{margin: 5}}
                                                                                   key={clsIdx}
-                                                                                  label={cls}
+                                                                                  label={cls.replace("_", " ")}
                                                                                   onDelete={() => {
                                                                                       filterCriteria.classNames.splice(clsIdx, 1);
                                                                                       setFilterCriteria({...filterCriteria});

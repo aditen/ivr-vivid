@@ -1,0 +1,3 @@
+SELECT kf.video_fk, kf.frame FROM ivr.keyframes kf where
+exists(select 1 from ivr.nasnet_classification cls2 where cls2.video_fk = kf.video_fk and cls2.frame = kf.frame and cls2.class in ('suit', 'lab_coat') and cls2.confidence >= 0.5) and
+exists(select 1 from ivr.yolo_detection yolo1 where yolo1.video_fk = kf.video_fk and yolo1.frame = kf.frame and yolo1.class = 'person' and yolo1.confidence >= 0.5);

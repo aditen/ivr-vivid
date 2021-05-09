@@ -63,6 +63,23 @@ class QueryHandler:
             print("Video table is ready!")
 
         self.cursor.execute(
+            "SELECT video_fk,frame FROM keyframes WHERE video_fk=?",
+            ('00032',))
+
+        if self.cursor.fetchone() is None:
+            data = []
+            for index, row in self.keyframe_data.iterrows():
+                data.append((row['keyframe'].split("_")[0], int(row['keyframe'].split("_")[1]),
+                             row['starttime'], row['endtime']
+                             ))
+            sql = "INSERT INTO keyframes(video_fk, frame, start_time, end_time) " \
+                  "VALUES (?, ?, ?, ?)"
+            self.cursor.executemany(sql, data)
+            self.db_connection.commit()
+        else:
+            print("Keyframe table is ready!")
+
+        self.cursor.execute(
             "SELECT video_fk FROM yolo_detection WHERE video_fk=?",
             ('00032',))
 
@@ -78,7 +95,6 @@ class QueryHandler:
             self.cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
-            print(len(self.yolo))
             print("Yolo table is ready!")
 
         self.cursor.execute(
@@ -112,7 +128,6 @@ class QueryHandler:
             self.cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
-            print(len(self.ocr_data))
             print("Tesseract table is ready!")
 
         self.cursor.execute('SELECT id, description, tags, title FROM videos')
