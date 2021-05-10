@@ -1,7 +1,5 @@
 import json
 import os
-import re
-from html import unescape
 from math import ceil
 from typing import List
 
@@ -13,8 +11,6 @@ from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
 
 from data_classes import FilterCriteria, Keyframe
-
-HTML_TAG_RE = re.compile(r'<[^>]+>')
 
 prediction_root = os.getenv(key="PREDICTIONS_ROOT",
                             default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
@@ -39,93 +35,6 @@ class QueryHandler:
         self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
                                              database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
         cursor = self.db_connection.cursor()
-
-        cursor.execute(
-            "SELECT id,title FROM videos WHERE id=?",
-            ('00032',))
-
-        if cursor.fetchone() is None:
-            jsons = []
-            for filename in os.listdir("C:/Users/41789/Documents/uni/fs21/video_retrieval/info"):
-                with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
-                          encoding="latin-1") as f:  # open in readonly mode
-                    json_obj = json.loads(f.read().encode("utf8"))
-                    jsons.append((json_obj['v3cId'], json_obj['title'], json.dumps(json_obj['tags']),
-                                  unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
-            sql = "INSERT INTO videos(id, title, tags, description) VALUES (?, ?, ?, ?)"
-            cursor.executemany(sql, jsons)
-            self.db_connection.commit()
-        else:
-            print("Video table is ready!")
-
-        cursor.execute(
-            "SELECT video_fk,frame FROM keyframes WHERE video_fk=?",
-            ('00032',))
-
-        if cursor.fetchone() is None:
-            data = []
-            for index, row in self.keyframe_data.iterrows():
-                data.append((row['keyframe'].split("_")[0], int(row['keyframe'].split("_")[1]),
-                             row['starttime'], row['endtime']
-                             ))
-            sql = "INSERT INTO keyframes(video_fk, frame, start_time, end_time) " \
-                  "VALUES (?, ?, ?, ?)"
-            cursor.executemany(sql, data)
-            self.db_connection.commit()
-        else:
-            print("Keyframe table is ready!")
-
-        cursor.execute(
-            "SELECT video_fk FROM yolo_detection WHERE video_fk=?",
-            ('00032',))
-
-        if cursor.fetchone() is None:
-            data = []
-            for index, row in self.yolo.iterrows():
-                data.append((row['video'], int(row['frame']),
-                             row['class'], float(row['centerX']), float(row['centerY']), float(row['width']),
-                             float(row['height']), float(row['confidence'])
-                             ))
-            sql = "INSERT INTO yolo_detection(video_fk, frame, class, center_x, center_y, width, height, confidence) " \
-                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            cursor.executemany(sql, data)
-            self.db_connection.commit()
-        else:
-            print("Yolo table is ready!")
-
-        cursor.execute(
-            "SELECT video_fk FROM nasnet_classification WHERE video_fk=?",
-            ('00032',))
-
-        if cursor.fetchone() is None:
-            data = []
-            for index, row in self.nasnet.iterrows():
-                filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
-                data.append((filename_parts[0], int(filename_parts[1]), row['class'], row['confidence']))
-            sql = "INSERT INTO nasnet_classification(video_fk, frame, class, confidence) " \
-                  "VALUES (?, ?, ?, ?)"
-            cursor.executemany(sql, data)
-            self.db_connection.commit()
-        else:
-            print(len(self.nasnet))
-            print("Nasnet table is ready!")
-
-        cursor.execute(
-            "SELECT video_fk FROM tesseract_text WHERE video_fk=?",
-            ('00032',))
-
-        if cursor.fetchone() is None:
-            data = []
-            for index, row in self.ocr_data.iterrows():
-                filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
-                data.append((filename_parts[0], int(filename_parts[1]), row['output']))
-            sql = "INSERT INTO tesseract_text(video_fk, frame, text) " \
-                  "VALUES (?, ?, ?)"
-            cursor.executemany(sql, data)
-            self.db_connection.commit()
-        else:
-            print("Tesseract table is ready!")
-
         cursor.execute('SELECT id, description, tags, title FROM videos')
         self.video_map = {}
         for vid_id, description, tags, title in cursor.fetchall():
@@ -196,6 +105,7 @@ class QueryHandler:
         print("Filtering according to criteria", filter_criteria)
         number_of_localization_queries = len(filter_criteria.locatedObjects)
         number_of_class_queries = len(filter_criteria.classNames)
+        number_of_count_queries = len(filter_criteria.minQuantities)
 
         # 1: We filter the keyframes
         sql_statement = "SELECT kf.video_fk, kf.frame FROM ivr.keyframes kf where 1=1"
@@ -214,21 +124,28 @@ class QueryHandler:
                              "ivrt.video_fk = kf.video_fk and ivrt.frame = kf.frame and ivrt.text like ?)"
             sql_data = sql_data + ["%" + filter_criteria.text + "%"]
 
-        if number_of_localization_queries > 0:
-            for i in range(0, number_of_localization_queries):
-                localization_filter = filter_criteria.locatedObjects[i]
-                yolo_table_name = "yolo" + str(i)
-                center_x = localization_filter.xOffset + localization_filter.width / 2
-                center_y = localization_filter.yOffset + localization_filter.height / 2
-                sql_statement += f' and exists(select 1=1 from ivr.yolo_detection {yolo_table_name} where ' \
-                                 f'{yolo_table_name}.video_fk = kf.video_fk and {yolo_table_name}.frame = kf.frame and ' \
-                                 f'{yolo_table_name}.class = ? and ' \
-                                 f'{yolo_table_name}.center_x between ? and ? and {yolo_table_name}.center_y between ? and ? and ' \
-                                 f'{yolo_table_name}.width between ? and ? and {yolo_table_name}.height between ? and ? and ' \
-                                 f'{yolo_table_name}.confidence >= 0.5)'
-                sql_data = sql_data + [localization_filter.className, center_x - 0.1, center_x + 0.1, center_y - 0.1,
-                                       center_y + 0.1, localization_filter.width - 0.1, localization_filter.width + 0.1,
-                                       localization_filter.height - 0.1, localization_filter.height + 0.1]
+        for i in range(0, number_of_localization_queries):
+            localization_filter = filter_criteria.locatedObjects[i]
+            yolo_table_name = "yolo" + str(i)
+            center_x = localization_filter.xOffset + localization_filter.width / 2
+            center_y = localization_filter.yOffset + localization_filter.height / 2
+            sql_statement += f' and exists(select 1=1 from ivr.yolo_detection {yolo_table_name} where ' \
+                             f'{yolo_table_name}.video_fk = kf.video_fk and {yolo_table_name}.frame = kf.frame and ' \
+                             f'{yolo_table_name}.class = ? and ' \
+                             f'{yolo_table_name}.center_x between ? and ? and {yolo_table_name}.center_y between ? and ? and ' \
+                             f'{yolo_table_name}.width between ? and ? and {yolo_table_name}.height between ? and ? and ' \
+                             f'{yolo_table_name}.confidence >= 0.5)'
+            sql_data = sql_data + [localization_filter.className, center_x - 0.1, center_x + 0.1, center_y - 0.1,
+                                   center_y + 0.1, localization_filter.width - 0.1, localization_filter.width + 0.1,
+                                   localization_filter.height - 0.1, localization_filter.height + 0.1]
+
+        for i in range(0, number_of_count_queries):
+            min_count_table_name = "mc" + str(i)
+            obj = filter_criteria.minQuantities[i]
+            sql_statement += f' and (kf.video_fk, kf.frame) in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
+                             f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= ?)'
+            sql_data = sql_data + [obj.className, obj.minQuantity]
+
         limit = min(200, filter_criteria.gridWidth * 25)
         sql_statement += " order by rand() limit " + str(limit)
         print("SQL statement:", sql_statement)

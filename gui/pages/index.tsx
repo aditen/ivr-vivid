@@ -347,7 +347,8 @@ const MainPage: NextPage = () => {
                                 </IconButton>
                             }/></>}
                         {!item &&
-                        <img style={{width: "100%", height: "auto"}} src="https://i.stack.imgur.com/6M513.png"/>}
+                        <img style={{width: "100%", height: "56.25%"}}
+                             src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Solid_white.svg/1024px-Solid_white.svg.png"/>}
                     </GridListTile>))}
                 </GridList>}
             </DialogContent>
