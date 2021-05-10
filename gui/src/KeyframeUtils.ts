@@ -14,7 +14,7 @@ export class KeyframeUtils {
         const endIndex = Math.min(Math.abs(kf.idx + numToDisplay / 2), kf.totalKfsVid);
         const resultArr = [];
         for (let i = beginIndex; i <= endIndex; i++) {
-            resultArr.push("https://iten.engineering/files/keyframes/" + kf.video + "/shot" + kf.video + "_" + i + "_RKF.png");
+            resultArr.push("http://localhost:9080/" + kf.video + "/shot" + kf.video + "_" + i + "_RKF.png");
         }
         return resultArr;
     }

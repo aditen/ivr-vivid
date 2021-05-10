@@ -88,8 +88,17 @@ const MainPage: NextPage = () => {
             setQueryStatus("loading");
             const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", {
                 ...filterCriteria,
+                locatedObjects: filterCriteria.locatedObjects.map(value => {
+                    return {
+                        xOffset: isLargeScreen ? value.xOffset / 640 : value.xOffset / 344,
+                        yOffset: isLargeScreen ? value.yOffset / 360 : value.yOffset / 171,
+                        width: isLargeScreen ? value.width / 640 : value.width / 344,
+                        height: isLargeScreen ? value.height / 360 : value.height / 171,
+                        className: value.className
+                    };
+                }),
                 text: !!filterCriteria.text ? filterCriteria.text : null
-            });
+            } as FilterCriteria);
             setResultMatrix(res.data);
             setQueryStatus("result");
             setApiStatus("online");

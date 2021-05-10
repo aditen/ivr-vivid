@@ -28,10 +28,6 @@ def find_index_from_image(img, image_data):  # this function finds the index of 
             return index
 
 
-# SELECT distinct video_fk, frame FROM ivr.nasnet_classification where class in ('suit', 'lab_coat') and confidence > 0.25 order by rand() limit 250;
-# SELECT video_fk, frame FROM ivr.yolo_detection ivr1 where ivr1.class = 'sink' and ivr1.confidence > 0.5 and
-# exists(select video_fk, frame from ivr.yolo_detection ivr2 where ivr2.class = 'person' and ivr2.confidence > 0.5 and ivr2.video_fk = ivr1.video_fk and ivr2.frame = ivr1.frame);
-
 class QueryHandler:
     def __init__(self):
         self.nasnet = pd.read_csv(prediction_root + 'nasnet_formated.csv')
@@ -42,13 +38,13 @@ class QueryHandler:
         self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv')
         self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
                                              database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
-        self.cursor = self.db_connection.cursor()
+        cursor = self.db_connection.cursor()
 
-        self.cursor.execute(
+        cursor.execute(
             "SELECT id,title FROM videos WHERE id=?",
             ('00032',))
 
-        if self.cursor.fetchone() is None:
+        if cursor.fetchone() is None:
             jsons = []
             for filename in os.listdir("C:/Users/41789/Documents/uni/fs21/video_retrieval/info"):
                 with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
@@ -57,16 +53,16 @@ class QueryHandler:
                     jsons.append((json_obj['v3cId'], json_obj['title'], json.dumps(json_obj['tags']),
                                   unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
             sql = "INSERT INTO videos(id, title, tags, description) VALUES (?, ?, ?, ?)"
-            self.cursor.executemany(sql, jsons)
+            cursor.executemany(sql, jsons)
             self.db_connection.commit()
         else:
             print("Video table is ready!")
 
-        self.cursor.execute(
+        cursor.execute(
             "SELECT video_fk,frame FROM keyframes WHERE video_fk=?",
             ('00032',))
 
-        if self.cursor.fetchone() is None:
+        if cursor.fetchone() is None:
             data = []
             for index, row in self.keyframe_data.iterrows():
                 data.append((row['keyframe'].split("_")[0], int(row['keyframe'].split("_")[1]),
@@ -74,16 +70,16 @@ class QueryHandler:
                              ))
             sql = "INSERT INTO keyframes(video_fk, frame, start_time, end_time) " \
                   "VALUES (?, ?, ?, ?)"
-            self.cursor.executemany(sql, data)
+            cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
             print("Keyframe table is ready!")
 
-        self.cursor.execute(
+        cursor.execute(
             "SELECT video_fk FROM yolo_detection WHERE video_fk=?",
             ('00032',))
 
-        if self.cursor.fetchone() is None:
+        if cursor.fetchone() is None:
             data = []
             for index, row in self.yolo.iterrows():
                 data.append((row['video'], int(row['frame']),
@@ -92,86 +88,51 @@ class QueryHandler:
                              ))
             sql = "INSERT INTO yolo_detection(video_fk, frame, class, center_x, center_y, width, height, confidence) " \
                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            self.cursor.executemany(sql, data)
+            cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
             print("Yolo table is ready!")
 
-        self.cursor.execute(
+        cursor.execute(
             "SELECT video_fk FROM nasnet_classification WHERE video_fk=?",
             ('00032',))
 
-        if self.cursor.fetchone() is None:
+        if cursor.fetchone() is None:
             data = []
             for index, row in self.nasnet.iterrows():
                 filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
                 data.append((filename_parts[0], int(filename_parts[1]), row['class'], row['confidence']))
             sql = "INSERT INTO nasnet_classification(video_fk, frame, class, confidence) " \
                   "VALUES (?, ?, ?, ?)"
-            self.cursor.executemany(sql, data)
+            cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
             print(len(self.nasnet))
             print("Nasnet table is ready!")
 
-        self.cursor.execute(
+        cursor.execute(
             "SELECT video_fk FROM tesseract_text WHERE video_fk=?",
             ('00032',))
 
-        if self.cursor.fetchone() is None:
+        if cursor.fetchone() is None:
             data = []
             for index, row in self.ocr_data.iterrows():
                 filename_parts = row['filename'].replace("shot", "").replace("_RKF.png", "").split("_")
                 data.append((filename_parts[0], int(filename_parts[1]), row['output']))
             sql = "INSERT INTO tesseract_text(video_fk, frame, text) " \
                   "VALUES (?, ?, ?)"
-            self.cursor.executemany(sql, data)
+            cursor.executemany(sql, data)
             self.db_connection.commit()
         else:
             print("Tesseract table is ready!")
 
-        self.cursor.execute('SELECT id, description, tags, title FROM videos')
+        cursor.execute('SELECT id, description, tags, title FROM videos')
         self.video_map = {}
-        for vid_id, description, tags, title in self.cursor.fetchall():
+        for vid_id, description, tags, title in cursor.fetchall():
             self.video_map[vid_id] = (description, tags, title)
 
+        cursor.close()
         print("Initialized query handler")
-
-    def get_shots_based_on_yolo_position_and_class(self, yolo, query_position, class_query):
-        query_filter = yolo[yolo["class"] == class_query]
-        b = query_position
-        confidence_filter = query_filter[query_filter["confidence"] >= 0.5]
-        confidence_filter["distance_to_query"] = confidence_filter.apply(lambda row: np.linalg.norm((row['centerX'],
-                                                                                                     row[
-                                                                                                         'centerY']) - b),
-                                                                         axis=1)
-        position_filter = confidence_filter[confidence_filter["distance_to_query"] < 0.1]["filename"]
-        query_result_shotframes = list(
-            set(map(lambda x: x[:-8], position_filter)))  # unique frames that contain the class query
-        positions = confidence_filter[confidence_filter["distance_to_query"] < 0.1][['filename', 'centerX', 'centerY']]
-        positions = positions.sort_values(by='filename')
-        sorted_shotframes = positions['filename']
-        X = positions['centerX'].to_numpy()
-        Y = positions['centerY'].to_numpy()
-        numberofshots_in_query = len(X)
-        print(numberofshots_in_query)
-        sorted_shotframes = list(map(lambda x: x[:-8], sorted_shotframes))  # unique frames that contain the class query
-        return sorted_shotframes, numberofshots_in_query
-
-    def get_shots_based_nasnet_class(self, nasnet, class_query):
-        query_filter = nasnet[nasnet["class"] == class_query]
-        confidence_filter = query_filter[query_filter["confidence"] >= 0.5]["filename"]
-        query_result_shotframes = list(
-            set(map(lambda x: x[:-8], confidence_filter)))  # unique frames that contain the class query
-        sorted_shotframes = sorted(query_result_shotframes)
-        numberofshots_in_query = len(sorted_shotframes)
-        return sorted_shotframes, numberofshots_in_query
-
-    def get_shots_based_ocr_text(self, ocr_data, text_query):
-        sorted_shotframes = sorted(ocr_data[ocr_data['output'].str.contains(text_query)]["filename"])
-        query_result_shotframes = list(map(lambda x: x[:-8], sorted_shotframes))
-        numberofshots_in_query = len(query_result_shotframes)
-        return query_result_shotframes, numberofshots_in_query
 
     def produce_SOM_grid(self, shot_locations, grid_w, grid_h, it=10):
         image_data = []
@@ -233,62 +194,61 @@ class QueryHandler:
 
     def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
         print("Filtering according to criteria", filter_criteria)
-        number_of_yolo_queries = len(filter_criteria.locatedObjects)
-        number_of_nasnet_queries = len(filter_criteria.classNames)
-        sorted_shotframes = list()
+        number_of_localization_queries = len(filter_criteria.locatedObjects)
+        number_of_class_queries = len(filter_criteria.classNames)
 
-        if number_of_yolo_queries > 0:
-            # get filtercriterias from canvas
-            yolo_class_query = filter_criteria.locatedObjects[0].className
-            x_offset = filter_criteria.locatedObjects[0].xOffset
-            y_offset = filter_criteria.locatedObjects[0].yOffset
-            width = filter_criteria.locatedObjects[0].width
-            height = filter_criteria.locatedObjects[0].height
+        # 1: We filter the keyframes
+        sql_statement = "SELECT kf.video_fk, kf.frame FROM ivr.keyframes kf where 1=1"
+        sql_data = []
 
-            # parse position to float between 0 and 1.
-            # to do: access information in isLargeScreen, if no, 640 -> 344px, and 360 -> 171
-            x_position = (x_offset + (width / 2)) / 640
-            y_position = (y_offset + (height / 2)) / 360
-            queryPosition = np.array((x_position, y_position))
-            sorted_shotframes, numberofshots_in_query = self.get_shots_based_on_yolo_position_and_class(self.yolo,
-                                                                                                        queryPosition,
-                                                                                                        yolo_class_query)
-            print("Yolo length", numberofshots_in_query)
+        # by keyframe class (nasnet)
+        if number_of_class_queries > 0:
+            sql_statement += " and exists(select 1 from ivr.nasnet_classification cls2 where " \
+                             "cls2.video_fk = kf.video_fk and cls2.frame = kf.frame and cls2.class in " \
+                             "(" + ",".join(["?"] * number_of_class_queries) + ") and cls2.confidence >= 0.5)"
+            sql_data = sql_data + filter_criteria.classNames
 
-        if number_of_nasnet_queries > 0:
-            # get filter criterias Nasnet
-            nasnet_class_query = filter_criteria.classNames[0]
-            print("Nasnet query:", nasnet_class_query)
-            sorted_shotframes_nasnet, numberofshots_in_query = self.get_shots_based_nasnet_class(self.nasnet,
-                                                                                                 nasnet_class_query)
-            print("Nasnet length", numberofshots_in_query)
-            if len(sorted_shotframes) > 0:
-                sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_nasnet)
-            else:
-                sorted_shotframes = sorted_shotframes_nasnet
+        # by text in keyframe (tesseract)
+        if filter_criteria.text is not None and filter_criteria.text != "":
+            sql_statement += " and exists(select 1 from ivr.tesseract_text ivrt where " \
+                             "ivrt.video_fk = kf.video_fk and ivrt.frame = kf.frame and ivrt.text like ?)"
+            sql_data = sql_data + ["%" + filter_criteria.text + "%"]
 
-        if filter_criteria.text is not None:
-            # get filter criterias text (OCR)
-            text_query = filter_criteria.text
-            print("text query:", text_query)
-            sorted_shotframes_text, numberofshots_in_query = self.get_shots_based_ocr_text(self.ocr_data, text_query)
-            if len(sorted_shotframes) > 0:
-                sorted_shotframes = np.intersect1d(sorted_shotframes, sorted_shotframes_text)
-            else:
-                sorted_shotframes = sorted_shotframes_text
+        if number_of_localization_queries > 0:
+            for i in range(0, number_of_localization_queries):
+                localization_filter = filter_criteria.locatedObjects[i]
+                yolo_table_name = "yolo" + str(i)
+                center_x = localization_filter.xOffset + localization_filter.width / 2
+                center_y = localization_filter.yOffset + localization_filter.height / 2
+                sql_statement += f' and exists(select 1=1 from ivr.yolo_detection {yolo_table_name} where ' \
+                                 f'{yolo_table_name}.video_fk = kf.video_fk and {yolo_table_name}.frame = kf.frame and ' \
+                                 f'{yolo_table_name}.class = ? and ' \
+                                 f'{yolo_table_name}.center_x between ? and ? and {yolo_table_name}.center_y between ? and ? and ' \
+                                 f'{yolo_table_name}.width between ? and ? and {yolo_table_name}.height between ? and ? and ' \
+                                 f'{yolo_table_name}.confidence >= 0.5)'
+                sql_data = sql_data + [localization_filter.className, center_x - 0.1, center_x + 0.1, center_y - 0.1,
+                                       center_y + 0.1, localization_filter.width - 0.1, localization_filter.width + 0.1,
+                                       localization_filter.height - 0.1, localization_filter.height + 0.1]
+        limit = min(200, filter_criteria.gridWidth * 25)
+        sql_statement += " order by rand() limit " + str(limit)
+        print("SQL statement:", sql_statement)
+        print("SQL data:", sql_data)
+        cursor = self.db_connection.cursor()
+        cursor.execute(sql_statement, tuple(sql_data))
+        sql_result = cursor.fetchall()
+        cursor.close()
+        print("SQL result:", sql_result)
 
-        print("Final length", len(sorted_shotframes))
-
-        all_kf_test = list(
-            map(lambda x: keyframe_root + x[4:9] + "/" + x + "_RKF.png", sorted_shotframes))
-
-        # 1: Laura filters the keyframes
+        all_kf = [(keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png") for video, frame in
+                  sql_result]
+        print("Final length", len(sql_result))
         print("Filtered all keyframes")
-        # 2: Baris does the SOM on the keyframes
-        if len(all_kf_test) > 0:
-            som_map = self.produce_SOM_grid(all_kf_test,
+
+        # 2: We do the SOM on the keyframes
+        if len(all_kf) > 0:
+            som_map = self.produce_SOM_grid(all_kf,
                                             filter_criteria.gridWidth,
-                                            ceil(float(len(all_kf_test)) / filter_criteria.gridWidth),
+                                            ceil(float(len(all_kf)) / filter_criteria.gridWidth),
                                             10)
         else:
             som_map = np.array([[]])
@@ -307,7 +267,7 @@ class QueryHandler:
                     description, tags, title = self.video_map[video]
                     som_correct_paths.append(
                         Keyframe(title=title, video=video, idx=int(kf_idx), totalKfsVid=int(kf_idx), atTime="00:01:10",
-                                 description=description, tags=json.loads(tags.replace("'", '"'))).to_dict())
+                                 description=description, tags=json.loads(tags)).to_dict())
                 else:
                     som_correct_paths.append(None)
             som_correct_paths_complete.append(som_correct_paths)
