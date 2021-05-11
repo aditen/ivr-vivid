@@ -102,8 +102,8 @@ class QueryHandler:
         number_of_count_queries = len(filter_criteria.minQuantities)
 
         # 1: We filter the keyframes
-        sql_statement = "SELECT kf.video_fk, kf.frame, vid.vimeo_id, vid.description, vid.tags, vid.title " \
-                        "FROM ivr.keyframes kf join ivr.videos vid where 1=1"
+        sql_statement = "SELECT kf.video_fk, kf.frame, kf.start_time, vid.vimeo_id, vid.description, vid.tags, " \
+                        "vid.title FROM ivr.keyframes kf join ivr.videos vid on vid.id = kf.video_fk where 1"
         sql_data = []
 
         # by keyframe class (nasnet)
@@ -152,13 +152,14 @@ class QueryHandler:
         print("SQL result:", sql_result)
 
         all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png":
-                           Keyframe(title=title, video=video, idx=frame, totalKfsVid=frame, atTime="00:01:10",
+                           Keyframe(title=title, video=video, idx=frame, totalKfsVid=frame,
+                                    atTime=str(ceil(start_time)) + "s",
                                     description=description, vimeoId=vimeo_id,
                                     tags=json.loads(tags)).to_dict() for
-                       video, frame, vimeo_id, description, tags, title in
+                       video, frame, start_time, vimeo_id, description, tags, title in
                        sql_result}
         all_kf = list(all_results.keys())
-        print("Filtered keyframes, result length:", len(sql_result))
+        print("Filtered keyframes, result length:", len(all_kf))
 
         # 2: We do the SOM on the keyframes
         if len(all_kf) > 0:

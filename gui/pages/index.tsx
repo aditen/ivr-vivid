@@ -363,9 +363,10 @@ const MainPage: NextPage = () => {
                 </IconButton></DialogTitle>
             <DialogContent>
                 <div style={{textAlign: "center"}}>
-                    <iframe src={"https://player.vimeo.com/video/" + keyframeToDisplay.vimeoId}
-                            width={isLargeScreen ? 640 : 320} height={isLargeScreen ? 360 : 180}
-                            frameBorder="0" allowFullScreen/>
+                    <iframe
+                        src={"https://player.vimeo.com/video/" + keyframeToDisplay.vimeoId + "#t=" + keyframeToDisplay.atTime}
+                        width={isLargeScreen ? 640 : 320} height={isLargeScreen ? 360 : 180}
+                        frameBorder="0" allowFullScreen/>
                 </div>
                 <Typography component={"p"}>{keyframeToDisplay.description}</Typography>
                 <>
