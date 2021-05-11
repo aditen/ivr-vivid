@@ -362,6 +362,11 @@ const MainPage: NextPage = () => {
                     <Icon>close</Icon>
                 </IconButton></DialogTitle>
             <DialogContent>
+                <div style={{textAlign: "center"}}>
+                    <iframe src={"https://player.vimeo.com/video/" + keyframeToDisplay.vimeoId}
+                            width={isLargeScreen ? 640 : 320} height={isLargeScreen ? 360 : 180}
+                            frameBorder="0" allowFullScreen/>
+                </div>
                 <Typography component={"p"}>{keyframeToDisplay.description}</Typography>
                 <>
                     {keyframeToDisplay.tags.map(tag => <Chip style={{margin: 5}} key={tag} label={tag}/>)}

@@ -36,6 +36,7 @@ class FilterCriteria:
 class Keyframe:
     title: str
     video: str
+    vimeoId: str
     idx: int
     totalKfsVid: int
     atTime: str

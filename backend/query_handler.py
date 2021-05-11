@@ -35,13 +35,6 @@ class QueryHandler:
         self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
                                              database=os.getenv("db_name"), host=os.getenv("db_host"), port=3306)
         self.db_connection.auto_reconnect = True
-        cursor = self.db_connection.cursor()
-        cursor.execute('SELECT id, description, tags, title FROM videos')
-        self.video_map = {}
-        for vid_id, description, tags, title in cursor.fetchall():
-            self.video_map[vid_id] = (description, tags, title)
-
-        cursor.close()
         print("Initialized query handler")
 
     def produce_SOM_grid(self, shot_locations, grid_w, grid_h, it=10):
@@ -109,7 +102,8 @@ class QueryHandler:
         number_of_count_queries = len(filter_criteria.minQuantities)
 
         # 1: We filter the keyframes
-        sql_statement = "SELECT kf.video_fk, kf.frame FROM ivr.keyframes kf where 1=1"
+        sql_statement = "SELECT kf.video_fk, kf.frame, vid.vimeo_id, vid.description, vid.tags, vid.title " \
+                        "FROM ivr.keyframes kf join ivr.videos vid where 1=1"
         sql_data = []
 
         # by keyframe class (nasnet)
@@ -157,10 +151,14 @@ class QueryHandler:
         cursor.close()
         print("SQL result:", sql_result)
 
-        all_kf = [(keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png") for video, frame in
-                  sql_result]
-        print("Final length", len(sql_result))
-        print("Filtered all keyframes")
+        all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png":
+                           Keyframe(title=title, video=video, idx=frame, totalKfsVid=frame, atTime="00:01:10",
+                                    description=description, vimeoId=vimeo_id,
+                                    tags=json.loads(tags)).to_dict() for
+                       video, frame, vimeo_id, description, tags, title in
+                       sql_result}
+        all_kf = list(all_results.keys())
+        print("Filtered keyframes, result length:", len(sql_result))
 
         # 2: We do the SOM on the keyframes
         if len(all_kf) > 0:
@@ -172,23 +170,16 @@ class QueryHandler:
             som_map = np.array([[]])
         list_som = som_map.tolist()
 
-        print("Done som:", list_som)
-
         som_correct_paths_complete = []
 
         for x in list_som:
             som_correct_paths = []
             for element in x:
                 if element is not None:
-                    video, kf_idx = element.replace(keyframe_root, "").split("/")[1].replace("shot", "").replace(
-                        "_RKF.png", "").split("_")
-                    description, tags, title = self.video_map[video]
-                    som_correct_paths.append(
-                        Keyframe(title=title, video=video, idx=int(kf_idx), totalKfsVid=int(kf_idx), atTime="00:01:10",
-                                 description=description, tags=json.loads(tags)).to_dict())
+                    som_correct_paths.append(all_results[element])
                 else:
                     som_correct_paths.append(None)
             som_correct_paths_complete.append(som_correct_paths)
-        print("corrected som:", som_correct_paths_complete)
+        print("Returning som:", som_correct_paths_complete)
 
         return som_correct_paths_complete
