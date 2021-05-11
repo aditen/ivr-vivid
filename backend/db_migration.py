@@ -22,9 +22,8 @@ def migrate_db():
         subset=['output'])
     keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv')
     db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
-                                    database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
-    db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
-                                    database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
+                                    database=os.getenv("db_name"), host=os.getenv("db_host"), port=3306)
+    db_connection.auto_reconnect = True
     cursor = db_connection.cursor()
 
     cursor.execute(
@@ -37,9 +36,9 @@ def migrate_db():
             with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
                       encoding="latin-1") as f:  # open in readonly mode
                 json_obj = json.loads(f.read().encode("utf8"))
-                jsons.append((json_obj['v3cId'], json_obj['title'], json.dumps(json_obj['tags']),
+                jsons.append((json_obj['v3cId'], json_obj['vimeoId'], json_obj['title'], json.dumps(json_obj['tags']),
                               unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
-        sql = "INSERT INTO videos(id, title, tags, description) VALUES (?, ?, ?, ?)"
+        sql = "INSERT INTO videos(id, vimeo_id, title, tags, description) VALUES (?, ?, ?, ?, ?)"
         cursor.executemany(sql, jsons)
         db_connection.commit()
     else:
@@ -112,3 +111,7 @@ def migrate_db():
         db_connection.commit()
     else:
         print("Tesseract table is ready!")
+
+
+if __name__ == "__main__":
+    migrate_db()

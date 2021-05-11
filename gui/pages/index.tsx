@@ -172,8 +172,8 @@ const MainPage: NextPage = () => {
                                                                                   fig.yOffset = d.y;
                                                                               }}
                                                                               onResizeStop={(e, direction, ref, delta, position) => {
-                                                                                  fig.width = Number.parseFloat(ref.style.width.replace("px", ""));
-                                                                                  fig.height = Number.parseFloat(ref.style.height.replace("px", ""));
+                                                                                  fig.width = Number.parseFloat(ref.style.width.replaceAll("px", ""));
+                                                                                  fig.height = Number.parseFloat(ref.style.height.replaceAll("px", ""));
                                                                               }}
                                                                               style={{
                                                                                   borderColor: "black",
@@ -252,7 +252,7 @@ const MainPage: NextPage = () => {
                                 filterOptions={(options: string[]) => {
                                     return options.filter(option => filterCriteria.classNames.indexOf(option) === -1);
                                 }}
-                                renderOption={option => option.replace("_", " ")}
+                                renderOption={option => option.replaceAll("_", " ")}
                                 options={classSuggestions}
                                 fullWidth={true}
                                 renderInput={(params) => <TextField {...params} label="Enter image class..."
@@ -263,7 +263,7 @@ const MainPage: NextPage = () => {
                             {filterCriteria.classNames.map((cls, clsIdx) => <Chip variant={"outlined"}
                                                                                   style={{margin: 5}}
                                                                                   key={clsIdx}
-                                                                                  label={cls.replace("_", " ")}
+                                                                                  label={cls.replaceAll("_", " ")}
                                                                                   onDelete={() => {
                                                                                       filterCriteria.classNames.splice(clsIdx, 1);
                                                                                       setFilterCriteria({...filterCriteria});

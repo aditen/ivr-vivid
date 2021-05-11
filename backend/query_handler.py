@@ -33,7 +33,8 @@ class QueryHandler:
             subset=['output'])
         self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv')
         self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
-                                             database=os.getenv("db_name"), host=os.getenv("db_host"), port=3307)
+                                             database=os.getenv("db_name"), host=os.getenv("db_host"), port=3306)
+        self.db_connection.auto_reconnect = True
         cursor = self.db_connection.cursor()
         cursor.execute('SELECT id, description, tags, title FROM videos')
         self.video_map = {}
