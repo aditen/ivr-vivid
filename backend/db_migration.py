@@ -33,16 +33,22 @@ def migrate_db():
     if cursor.fetchone() is None:
         jsons = []
         for filename in os.listdir("C:/Users/41789/Documents/uni/fs21/video_retrieval/info"):
-            with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
-                      encoding="latin-1") as f:  # open in readonly mode
-                json_obj = json.loads(f.read().encode("utf8"))
-                jsons.append((json_obj['v3cId'], json_obj['vimeoId'], json_obj['title'], json.dumps(json_obj['tags']),
-                              unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
+            try:
+                with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
+                          encoding="utf8") as f:  # open in readonly mode
+                    json_obj = json.loads(f.read())
+                    jsons.append((json_obj['v3cId'], json_obj['vimeoId'], json_obj['title'], json.dumps(json_obj['tags']),
+                                  unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
+            except ValueError:
+                with open(os.path.join("C:/Users/41789/Documents/uni/fs21/video_retrieval/info", filename), 'r',
+                          encoding="latin-1") as f:  # open in readonly mode
+                    json_obj = json.loads(f.read())
+                    jsons.append((json_obj['v3cId'], json_obj['vimeoId'], json_obj['title'], json.dumps(json_obj['tags']),
+                                  unescape(' '.join(HTML_TAG_RE.sub('', json_obj['description']).split()))))
         sql = "INSERT INTO videos(id, vimeo_id, title, tags, description) VALUES (?, ?, ?, ?, ?)"
         cursor.executemany(sql, jsons)
         db_connection.commit()
-    else:
-        print("Video table is ready!")
+    print("Video table is ready!")
 
     cursor.execute(
         "SELECT video_fk,frame FROM keyframes WHERE video_fk=?",
@@ -58,8 +64,7 @@ def migrate_db():
               "VALUES (?, ?, ?, ?)"
         cursor.executemany(sql, data)
         db_connection.commit()
-    else:
-        print("Keyframe table is ready!")
+    print("Keyframe table is ready!")
 
     cursor.execute(
         "SELECT video_fk FROM yolo_detection WHERE video_fk=?",
@@ -76,8 +81,7 @@ def migrate_db():
               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         cursor.executemany(sql, data)
         db_connection.commit()
-    else:
-        print("Yolo table is ready!")
+    print("Yolo table is ready!")
 
     cursor.execute(
         "SELECT video_fk FROM nasnet_classification WHERE video_fk=?",
@@ -92,9 +96,7 @@ def migrate_db():
               "VALUES (?, ?, ?, ?)"
         cursor.executemany(sql, data)
         db_connection.commit()
-    else:
-        print(len(nasnet))
-        print("Nasnet table is ready!")
+    print("Nasnet table is ready!")
 
     cursor.execute(
         "SELECT video_fk FROM tesseract_text WHERE video_fk=?",
@@ -109,8 +111,7 @@ def migrate_db():
               "VALUES (?, ?, ?)"
         cursor.executemany(sql, data)
         db_connection.commit()
-    else:
-        print("Tesseract table is ready!")
+    print("Tesseract table is ready!")
 
 
 if __name__ == "__main__":

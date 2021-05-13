@@ -42,3 +42,11 @@ class Keyframe:
     atTime: str
     description: str
     tags: List[str]
+
+
+@dataclass_json
+@dataclass
+class RandomVideo:
+    id: str
+    vimeoId: str
+    atTime: int

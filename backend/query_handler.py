@@ -1,5 +1,7 @@
 import json
 import os
+import random
+
 from math import ceil
 from typing import List
 
@@ -10,7 +12,7 @@ from PIL import Image
 from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
 
-from data_classes import FilterCriteria, Keyframe
+from data_classes import FilterCriteria, Keyframe, RandomVideo
 
 prediction_root = os.getenv(key="PREDICTIONS_ROOT",
                             default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
@@ -36,6 +38,18 @@ class QueryHandler:
                                              database=os.getenv("db_name"), host=os.getenv("db_host"), port=3306)
         self.db_connection.auto_reconnect = True
         print("Initialized query handler")
+
+    def random_visual_known_item(self) -> RandomVideo:
+        cursor = self.db_connection.cursor()
+        cursor.execute(
+            "SELECT id, vimeo_id, floor(max(keyframes.end_time)) - 20 from videos "
+            "join keyframes on videos.id = keyframes.video_fk "
+            "group by keyframes.video_fk "
+            "order by rand() limit 1")
+        sql_result = cursor.fetchone()
+        cursor.close()
+        print("Random video result:", sql_result)
+        return RandomVideo(id=sql_result[0], vimeoId=sql_result[1], atTime=random.randint(0, int(sql_result[2])))
 
     def produce_SOM_grid(self, shot_locations, grid_w, grid_h, it=10):
         image_data = []
@@ -130,9 +144,9 @@ class QueryHandler:
                              f'{yolo_table_name}.center_x between ? and ? and {yolo_table_name}.center_y between ? and ? and ' \
                              f'{yolo_table_name}.width between ? and ? and {yolo_table_name}.height between ? and ? and ' \
                              f'{yolo_table_name}.confidence >= 0.5)'
-            sql_data = sql_data + [localization_filter.className, center_x - 0.1, center_x + 0.1, center_y - 0.1,
-                                   center_y + 0.1, localization_filter.width - 0.1, localization_filter.width + 0.1,
-                                   localization_filter.height - 0.1, localization_filter.height + 0.1]
+            sql_data = sql_data + [localization_filter.className, center_x - 0.15, center_x + 0.15, center_y - 0.15,
+                                   center_y + 0.15, localization_filter.width - 0.15, localization_filter.width + 0.15,
+                                   localization_filter.height - 0.15, localization_filter.height + 0.15]
 
         for i in range(0, number_of_count_queries):
             min_count_table_name = "mc" + str(i)

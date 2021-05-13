@@ -43,6 +43,11 @@ def suggest_imagenet_class():
     return Response(json.dumps(suggester.predict_class(query_string)), mimetype="application/json")
 
 
+@app.route('/random_visual_known_item', methods=['GET'])
+def random_visual_known_item():
+    return Response(query_handler.random_visual_known_item().to_json(), mimetype="application/json")
+
+
 @app.route('/', methods=['GET'])
 def sample():
     return "Hello from our api!"

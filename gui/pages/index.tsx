@@ -40,6 +40,7 @@ import axios from "axios";
 import {FilterCriteria} from "../src/FilterCriteria";
 import {VividKeyframe} from "../src/VividKeyframe";
 import {KeyframeUtils} from "../src/KeyframeUtils";
+import {RandomVideo} from "../src/RandomVideo";
 
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
@@ -57,6 +58,8 @@ const MainPage: NextPage = () => {
         gridWidth: isLargeScreen ? 12 : 4,
         text: ""
     });
+    const [visualKnownItemVideo, setVisualKnownItemVideo] = useState<RandomVideo | undefined>();
+    const [watchingKnownVideo, setWatchingKnownVideo] = useState<boolean>(false);
 
     useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 12 : 4}), [isLargeScreen]);
 
@@ -66,6 +69,28 @@ const MainPage: NextPage = () => {
             setApiStatus("online");
         } catch (e) {
             setApiStatus("error");
+        }
+    };
+
+    const loadVisualKnownItemVideo = async () => {
+        try {
+            const randomVideo = await axios.get<RandomVideo>("http://localhost:5000/random_visual_known_item");
+            setVisualKnownItemVideo(randomVideo.data);
+            setWatchingKnownVideo(true);
+        } catch (e) {
+            setApiStatus("error");
+        }
+    };
+
+    const submit = (kf: VividKeyframe) => {
+        if (!!visualKnownItemVideo) {
+            if (kf.video === visualKnownItemVideo.id) {
+                alert("Congrats! Correct vide found!");
+            } else {
+                alert("Sorry! that was wrong...")
+            }
+        } else {
+            alert("will be implemented!");
         }
     };
 
@@ -146,6 +171,7 @@ const MainPage: NextPage = () => {
                     style={{height: 50, width: "auto", marginRight: 10}}/>
                 <Typography variant={"h4"} style={{flexGrow: 1}}>
                     ViViD</Typography>
+                <IconButton onClick={() => loadVisualKnownItemVideo()}><Icon>play_arrow</Icon></IconButton>
                 {apiStatus === "online" && <Icon style={{color: "green", marginRight: 5}}>check</Icon>}
                 {apiStatus === "error" && <Icon style={{color: "red", marginRight: 5}}>clear</Icon>}
             </Toolbar>
@@ -337,7 +363,7 @@ const MainPage: NextPage = () => {
                         cols={1}>
                         {!!item && <><img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
                             <GridListTileBar titlePosition={"top"} actionIcon={
-                                <IconButton style={{color: "white"}} onClick={() => alert("okay, submitted!")}>
+                                <IconButton style={{color: "white"}} onClick={() => submit(item)}>
                                     <Icon>check</Icon>
                                 </IconButton>
                             }/>
@@ -381,6 +407,18 @@ const MainPage: NextPage = () => {
                         <TimelineContent><img style={{width: "200px", height: "auto"}} src={kfUrl}/></TimelineContent>
                     </TimelineItem>)}
                 </Timeline>
+            </DialogContent>
+        </Dialog>}
+        {!!visualKnownItemVideo &&
+        <Dialog maxWidth={"md"} open={watchingKnownVideo} onClose={() => setWatchingKnownVideo(false)}>
+            <DialogTitle>Find the video!</DialogTitle>
+            <DialogContent>
+                <div style={{textAlign: "center"}}>
+                    <iframe
+                        src={"https://player.vimeo.com/video/" + visualKnownItemVideo.vimeoId + "#t=" + visualKnownItemVideo.atTime + "s"}
+                        width={isLargeScreen ? 640 : 320} height={isLargeScreen ? 360 : 180}
+                        frameBorder="0" allowFullScreen/>
+                </div>
             </DialogContent>
         </Dialog>}
     </React.Fragment>)
