@@ -26,6 +26,26 @@ npm run dev
 If you want to **add libraries** you can do so by doing an *npm i library* command, which adds the version to the package.json as well as package-lock.json files.
 **Note: Please do not commit changes to the package.json file at the moment!**
 
+## Static fileserver for Keyframes
+As they load way faster from your localhost (being read from the disk) you should set up a static server on your machine. Do this , use the [npm static-server package](https://www.npmjs.com/package/static-server). The steps to use it are simple. As you have already installed NodeJS for the GUI on your machine, just run the following two commands (**second one has to be run inside your keyframe directory**)
+
+```
+npm -g install static-server
+static-server
+```
+
+## Setting up the database locally
+You need a **MariaDB** server locally. Simplest way to do this is with docker. Simply run below command, overriding the passwords (pass1234 respectively root 1234) with whatever you want and your mariadb will be running on port 3306, available for other processes (and running in the background due to the -d flag):
+```
+docker run -p 3306:3306  --name ivr-mariadb --restart always -e MYSQL_ROOT_PASSWORD=root1234 -e MYSQL_DATABASE=ivr -e MYSQL_USER=ivr -e MYSQL_PASSWORD=pass1234 -d mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+```
+Subsequently, just load the sql dump (ivr.sql in the shared directory) into your database, it will automatically build indices to speed up the queries 😎
+
+Then set the following environment variables to your backend runtime (again, adjust the password if you change it. I recommend **NOT** to use the root user for the connection!
+```
+db_host=localhost;db_pw=pass1234;db_user=ivr;db_name=ivr
+```
+
 ## REST calls
 For data loading, the user interface calls the backend via REST calls. The methods used are GET and POST. 
 GET is used in the context of getting suggestions (for a given text query) 
