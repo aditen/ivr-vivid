@@ -1,13 +1,11 @@
 import json
 import os
 import random
-
 from math import ceil
 from typing import List
 
 import mariadb
 import numpy as np
-import pandas as pd
 from PIL import Image
 from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
@@ -28,12 +26,6 @@ def find_index_from_image(img, image_data):  # this function finds the index of 
 
 class QueryHandler:
     def __init__(self):
-        self.nasnet = pd.read_csv(prediction_root + 'nasnet_formated.csv')
-        self.yolo = pd.read_csv(prediction_root + 'yolo.csv',
-                                index_col="idx", dtype=str)
-        self.ocr_data = pd.read_csv(prediction_root + 'combinedOCR.csv').dropna(
-            subset=['output'])
-        self.keyframe_data = pd.read_csv(prediction_root + 'timeframes.csv')
         self.db_connection = mariadb.connect(user=os.getenv("db_user"), password=os.getenv("db_pw"),
                                              database=os.getenv("db_name"), host=os.getenv("db_host"), port=3306)
         self.db_connection.auto_reconnect = True
