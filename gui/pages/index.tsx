@@ -35,7 +35,7 @@ import {
     TimelineItem,
     TimelineSeparator
 } from "@material-ui/lab";
-import {YoloClassImages, YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
+import {YoloClassName, YoloTypesAsArray} from "../src/YoloClassName";
 import axios from "axios";
 import {FilterCriteria} from "../src/FilterCriteria";
 import {VividKeyframe} from "../src/VividKeyframe";
@@ -207,7 +207,7 @@ const MainPage: NextPage = () => {
                                                                                   borderStyle: "dotted"
                                                                               }}>
                             <img draggable={false} style={{width: "100%", height: "100%"}}
-                                 src={!!YoloClassImages[fig.className] ? YoloClassImages[fig.className] : "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Question_mark_%28black%29.svg/200px-Question_mark_%28black%29.svg.png"}/>
+                                 src={"/" + fig.className + ".png"}/>
                         </Rnd>)}
 
                     </div>
