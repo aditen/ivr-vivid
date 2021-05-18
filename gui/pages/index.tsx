@@ -2,6 +2,7 @@ import {NextPage} from "next";
 import {
     AppBar,
     Button,
+    ButtonGroup,
     Card,
     CardActions,
     CardContent,
@@ -42,9 +43,27 @@ import {VividKeyframe} from "../src/VividKeyframe";
 import {KeyframeUtils} from "../src/KeyframeUtils";
 import {RandomVideo} from "../src/RandomVideo";
 
+const quantityMarks = [
+    {
+        value: 1,
+        label: '1',
+    },
+    {
+        value: 5,
+        label: '5',
+    },
+    {
+        value: 10,
+        label: '10',
+    },
+    {
+        value: 15,
+        label: '15+',
+    }
+];
+
 const MainPage: NextPage = () => {
     const [typeToAdd, setTypeToAdd] = useState<YoloClassName | null>(null);
-    const [minQuantity, setMinQuantity] = useState<number>(1);
     const [classSuggestions, setClassSuggestions] = useState<string[]>([]);
     const [resultMatrix, setResultMatrix] = useState<VividKeyframe[][]>([[]]);
     const [keyframeToDisplay, setKeyframeToDisplay] = useState<VividKeyframe | undefined>();
@@ -53,15 +72,17 @@ const MainPage: NextPage = () => {
     const isLargeScreen = useMediaQuery('(min-width:670px)');
     const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
         locatedObjects: [],
-        minQuantities: [],
+        quantities: [],
         classNames: [],
-        gridWidth: isLargeScreen ? 12 : 4,
+        gridWidth: isLargeScreen ? 8 : 4,
         text: ""
     });
     const [visualKnownItemVideo, setVisualKnownItemVideo] = useState<RandomVideo | undefined>();
     const [watchingKnownVideo, setWatchingKnownVideo] = useState<boolean>(false);
+    const [detectionType, setDetectionType] = useState<'zero' | 'one' | 'range'>("one");
+    const [quantityRange, setQuantityRange] = useState<number[]>([1, 15]);
 
-    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 12 : 4}), [isLargeScreen]);
+    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 8 : 4}), [isLargeScreen]);
 
     const checkApiStatus = async () => {
         try {
@@ -135,7 +156,7 @@ const MainPage: NextPage = () => {
     };
 
     const addYoloObject = () => {
-        if (minQuantity < 2) {
+        if (detectionType === "one") {
             setFilterCriteria({
                 ...filterCriteria, locatedObjects: [...filterCriteria.locatedObjects, {
                     className: typeToAdd,
@@ -145,16 +166,17 @@ const MainPage: NextPage = () => {
                     yOffset: isLargeScreen ? 130 : 35
                 }]
             });
-            setMinQuantity(1);
+            setQuantityRange([1, 15]);
         } else {
             setFilterCriteria({
                 ...filterCriteria,
-                minQuantities: [...filterCriteria.minQuantities.filter(value => value.className !== typeToAdd), {
+                quantities: [...filterCriteria.quantities.filter(value => value.className !== typeToAdd), {
                     className: typeToAdd,
-                    minQuantity: minQuantity
+                    minQuantity: detectionType === "zero" ? 0 : quantityRange[0],
+                    maxQuantity: detectionType === "zero" ? 0 : quantityRange[1]
                 }]
             });
-            setMinQuantity(1);
+            setQuantityRange([1, 15]);
         }
     };
 
@@ -230,36 +252,39 @@ const MainPage: NextPage = () => {
                                 renderInput={(params) => <TextField {...params} label="Choose object..."
                                                                     variant="outlined"/>}
                             />
-                            <TextField style={{marginLeft: 10, marginRight: 10}}
-                                       label="Min Quantity"
-                                       inputProps={{min: 1}}
-                                       disabled={!typeToAdd}
-                                       value={minQuantity === null ? '' : minQuantity}
-                                       onChange={event => setMinQuantity(Number.parseInt(event.target.value))}
-                                       type="number"
-                                       InputLabelProps={{
-                                           shrink: true
-                                       }}
-                                       variant="outlined"
-                            />
+                            <ButtonGroup color="primary" style={{marginLeft: 10}}>
+                                <Button variant={detectionType === "zero" ? "contained" : "outlined"}
+                                        onClick={() => setDetectionType("zero")}>Zero</Button>
+                                <Button variant={detectionType === "one" ? "contained" : "outlined"}
+                                        onClick={() => setDetectionType("one")}>One</Button>
+                                <Button variant={detectionType === "range" ? "contained" : "outlined"}
+                                        onClick={() => setDetectionType("range")}>Range</Button>
+                            </ButtonGroup>
                             <IconButton disabled={!typeToAdd} onClick={() => {
                                 addYoloObject();
                             }}><Icon>add</Icon></IconButton>
                         </div>
+                        {detectionType === "range" && <Slider style={{margin: 5}}
+                                                              min={1}
+                                                              max={15}
+                                                              value={quantityRange}
+                                                              marks={quantityMarks}
+                                                              onChange={(event, value) => setQuantityRange(value as number[])}
+                        />}
                         <div>
-                            {filterCriteria.minQuantities.map((cls, clsIdx) => <Chip variant={"outlined"}
-                                                                                     style={{
-                                                                                         marginTop: 10,
-                                                                                         marginRight: 5
-                                                                                     }}
-                                                                                     key={clsIdx}
-                                                                                     label={cls.className + " ≥ " + cls.minQuantity}
-                                                                                     onDelete={() => {
-                                                                                         setFilterCriteria({
-                                                                                             ...filterCriteria,
-                                                                                             minQuantities: [...filterCriteria.minQuantities.filter(minQuant => minQuant.className !== cls.className)]
-                                                                                         })
-                                                                                     }}
+                            {filterCriteria.quantities.map((cls, clsIdx) => <Chip variant={"outlined"}
+                                                                                  style={{
+                                                                                      marginTop: 10,
+                                                                                      marginRight: 5
+                                                                                  }}
+                                                                                  key={clsIdx}
+                                                                                  label={(cls.minQuantity === 0 && cls.maxQuantity === 0) ? ("no " + cls.className) : cls.maxQuantity === 15 ? (cls.minQuantity + "+ " + cls.className) : (cls.minQuantity + "-" + cls.maxQuantity + " " + cls.className)}
+                                                                                  onDelete={() => {
+                                                                                      setFilterCriteria({
+                                                                                          ...filterCriteria,
+                                                                                          quantities: [...filterCriteria.quantities.filter(minQuant => minQuant.className !== cls.className)]
+                                                                                      })
+                                                                                  }}
                             />)}
                         </div>
                         <div style={{marginTop: 15, marginBottom: 15}}>
@@ -318,23 +343,24 @@ const MainPage: NextPage = () => {
                                 step={2}
                                 marks
                                 min={4}
-                                max={24}
+                                max={12}
                             />
                         </div>
                         <CardActions>
                             <Button variant={"contained"} color={"primary"}
-                                    disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.minQuantities.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
+                                    disabled={filterCriteria.locatedObjects.length == 0 && filterCriteria.quantities.length == 0 && filterCriteria.classNames.length == 0 && !filterCriteria.text}
                                     onClick={() => executeQuery()}><Icon>done</Icon>Submit</Button>
                             <Button variant={"contained"} color={"secondary"} onClick={() => {
                                 setFilterCriteria({
                                     locatedObjects: [],
-                                    minQuantities: [],
+                                    quantities: [],
                                     classNames: [],
                                     gridWidth: filterCriteria.gridWidth,
                                     text: ""
                                 });
                                 setClassSuggestions([]);
-                                setMinQuantity(1);
+                                setDetectionType("one");
+                                setQuantityRange([1, 15]);
                                 setTypeToAdd(null);
                             }}><Icon>delete</Icon>Clear</Button>
                         </CardActions>
@@ -390,7 +416,7 @@ const MainPage: NextPage = () => {
             <DialogContent>
                 <div style={{textAlign: "center"}}>
                     <iframe
-                        src={"https://player.vimeo.com/video/" + keyframeToDisplay.vimeoId + "#t=" + keyframeToDisplay.atTime}
+                        src={"https://player.vimeo.com/video/" + keyframeToDisplay.vimeoId + "?autoplay=1#t=" + keyframeToDisplay.atTime}
                         width={isLargeScreen ? 640 : 320} height={isLargeScreen ? 360 : 180}
                         frameBorder="0" allowFullScreen/>
                 </div>

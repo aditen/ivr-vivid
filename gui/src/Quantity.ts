@@ -1,6 +1,7 @@
 import {YoloClassName} from "./YoloClassName";
 
-export interface MinQuantity {
+export interface Quantity {
     minQuantity: number,
+    maxQuantity: number,
     className: YoloClassName
 }

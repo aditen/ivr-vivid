@@ -16,8 +16,9 @@ class LocatedObject:
 
 @dataclass_json
 @dataclass
-class MinQuantity:
+class Quantity:
     minQuantity: int
+    maxQuantity: int
     className: str
 
 
@@ -25,7 +26,7 @@ class MinQuantity:
 @dataclass
 class FilterCriteria:
     locatedObjects: List[LocatedObject]
-    minQuantities: List[MinQuantity]
+    quantities: List[Quantity]
     classNames: List[str]
     gridWidth: int
     text: Optional[str] = None

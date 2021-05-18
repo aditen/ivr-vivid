@@ -1,9 +1,9 @@
 import {LocatedObject} from "./LocatedObject";
-import {MinQuantity} from "./MinQuantity";
+import {Quantity} from "./Quantity";
 
 export interface FilterCriteria {
     locatedObjects: LocatedObject[],
-    minQuantities: MinQuantity[],
+    quantities: Quantity[],
     classNames: string[]
     gridWidth: number
     text: string | null

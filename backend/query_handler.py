@@ -105,7 +105,7 @@ class QueryHandler:
         print("Filtering according to criteria", filter_criteria)
         number_of_localization_queries = len(filter_criteria.locatedObjects)
         number_of_class_queries = len(filter_criteria.classNames)
-        number_of_count_queries = len(filter_criteria.minQuantities)
+        number_of_count_queries = len(filter_criteria.quantities)
 
         # 1: We filter the keyframes
         sql_statement = "SELECT kf.video_fk, kf.frame, kf.start_time, vid.vimeo_id, vid.description, vid.tags, " \
@@ -143,12 +143,24 @@ class QueryHandler:
 
         for i in range(0, number_of_count_queries):
             min_count_table_name = "mc" + str(i)
-            obj = filter_criteria.minQuantities[i]
-            sql_statement += f' and (kf.video_fk, kf.frame) in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
-                             f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= ?)'
-            sql_data = sql_data + [obj.className, obj.minQuantity]
+            obj = filter_criteria.quantities[i]
 
-        limit = min(200, filter_criteria.gridWidth * 25)
+            if obj.minQuantity == 0 and obj.maxQuantity == 0:
+                sql_statement += f' and (kf.video_fk, kf.frame) not in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
+                                 f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= 1)'
+                sql_data = sql_data + [obj.className, obj.minQuantity]
+            else:
+                sql_statement += f' and (kf.video_fk, kf.frame) in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
+                                 f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) '
+                # case distiction: 15 means 15+, else is range
+                if obj.maxQuantity == 15:
+                    sql_statement += ">= ?)"
+                    sql_data = sql_data + [obj.className, obj.minQuantity]
+                else:
+                    sql_statement += "between ? and ?)"
+                    sql_data = sql_data + [obj.className, obj.minQuantity, obj.maxQuantity]
+
+        limit = min(12 * 12, filter_criteria.gridWidth * 12)
         sql_statement += " order by rand() limit " + str(limit)
         print("SQL statement:", sql_statement)
         print("SQL data:", sql_data)
