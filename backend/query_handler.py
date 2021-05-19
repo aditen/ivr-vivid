@@ -147,11 +147,11 @@ class QueryHandler:
 
             if obj.minQuantity == 0 and obj.maxQuantity == 0:
                 sql_statement += f' and (kf.video_fk, kf.frame) not in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
-                                 f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= 1)'
+                                 f'{min_count_table_name}.class = ? and {min_count_table_name}.confidence >= 0.5 group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= 1)'
                 sql_data = sql_data + [obj.className, obj.minQuantity]
             else:
                 sql_statement += f' and (kf.video_fk, kf.frame) in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
-                                 f'{min_count_table_name}.class = ? group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) '
+                                 f'{min_count_table_name}.class = ? and {min_count_table_name}.confidence >= 0.5 group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) '
                 # case distiction: 15 means 15+, else is range
                 if obj.maxQuantity == 15:
                     sql_statement += ">= ?)"
