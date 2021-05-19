@@ -168,11 +168,11 @@ const MainPage: NextPage = () => {
     const executeQuery = async () => {
         try {
             setQueryStatus("loading");
-            // const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", filterCriteria);
+            const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", filterCriteria);
             // TODO: start hack
-            const reqBody = filterCriteria.frames[0];
-            reqBody['gridWidth'] = filterCriteria.gridWidth;
-            const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", reqBody);
+            //const reqBody = filterCriteria.frames[0];
+            //reqBody['gridWidth'] = filterCriteria.gridWidth;
+            //const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", reqBody);
             // TODO: end hack
             setResultMatrix(res.data);
             setQueryStatus("result");
@@ -501,7 +501,19 @@ const MainPage: NextPage = () => {
                                 </div>}
                                 {!value.locatedObjects.length && <Typography style={{
                                     width: isLargeScreen ? '640px' : '344px',
-                                }} variant={"body1"} component={"div"}>No objects chosen for this scene</Typography>}
+                                }} variant={"body1"} component={"div"}>No object localizations sketched for this
+                                    scene</Typography>}
+                                <div>
+                                    {value.classNames.map((cls, clsIdx) => <Chip
+                                        variant={"outlined"}
+                                        style={{
+                                            marginTop: 10,
+                                            marginRight: 5
+                                        }}
+                                        key={clsIdx}
+                                        label={cls.replaceAll("_", " ")}
+                                    />)}
+                                </div>
                                 <div>
                                     {value.quantities.map((cls, clsIdx) => <Chip
                                         variant={"outlined"}
@@ -531,6 +543,8 @@ const MainPage: NextPage = () => {
                         style={{height: 50, width: "auto", marginRight: 10}}/>
                     <Typography variant={"h4"} style={{flexGrow: 1}}>
                         Results</Typography>
+                    {resultMatrix.filter(value => value.filter(value1 => !value1).length === 0).length === 12 &&
+                    <Icon style={{marginRight: 5}}>warning</Icon>}
                     <IconButton onClick={() => setQueryStatus("defining")}><Icon>close</Icon></IconButton>
                 </Toolbar>
             </AppBar>

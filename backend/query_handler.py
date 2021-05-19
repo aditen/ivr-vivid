@@ -103,9 +103,14 @@ class QueryHandler:
 
     def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
         print("Filtering according to criteria", filter_criteria)
-        number_of_localization_queries = len(filter_criteria.locatedObjects)
-        number_of_class_queries = len(filter_criteria.classNames)
-        number_of_count_queries = len(filter_criteria.quantities)
+
+        if len(filter_criteria.frames) == 0:
+            print("No filters defined!")
+            return [[]]
+
+        number_of_localization_queries = len(filter_criteria.frames[0].locatedObjects)
+        number_of_class_queries = len(filter_criteria.frames[0].classNames)
+        number_of_count_queries = len(filter_criteria.frames[0].quantities)
 
         # 1: We filter the keyframes
         sql_statement = "SELECT kf.video_fk, kf.frame, kf.start_time, vid.vimeo_id, vid.description, vid.tags, " \
@@ -118,16 +123,16 @@ class QueryHandler:
             sql_statement += " and exists(select 1 from ivr.nasnet_classification cls2 where " \
                              "cls2.video_fk = kf.video_fk and cls2.frame = kf.frame and cls2.class in " \
                              "(" + ",".join(["?"] * number_of_class_queries) + ") and cls2.confidence >= 0.5)"
-            sql_data = sql_data + filter_criteria.classNames
+            sql_data = sql_data + filter_criteria.frames[0].classNames
 
         # by text in keyframe (tesseract)
-        if filter_criteria.text is not None and filter_criteria.text != "":
+        if filter_criteria.frames[0].text is not None and filter_criteria.frames[0].text != "":
             sql_statement += " and exists(select 1 from ivr.tesseract_text ivrt where " \
                              "ivrt.video_fk = kf.video_fk and ivrt.frame = kf.frame and ivrt.text like ?)"
-            sql_data = sql_data + ["%" + filter_criteria.text + "%"]
+            sql_data = sql_data + ["%" + filter_criteria.frames[0].text + "%"]
 
         for i in range(0, number_of_localization_queries):
-            localization_filter = filter_criteria.locatedObjects[i]
+            localization_filter = filter_criteria.frames[0].locatedObjects[i]
             yolo_table_name = "yolo" + str(i)
             center_x = localization_filter.xOffset + localization_filter.width / 2
             center_y = localization_filter.yOffset + localization_filter.height / 2
@@ -143,7 +148,7 @@ class QueryHandler:
 
         for i in range(0, number_of_count_queries):
             min_count_table_name = "mc" + str(i)
-            obj = filter_criteria.quantities[i]
+            obj = filter_criteria.frames[0].quantities[i]
 
             if obj.minQuantity == 0 and obj.maxQuantity == 0:
                 sql_statement += f' and (kf.video_fk, kf.frame) not in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
