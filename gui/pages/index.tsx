@@ -167,13 +167,9 @@ const MainPage: NextPage = () => {
 
     const executeQuery = async () => {
         try {
+            setResultMatrix([[]]);
             setQueryStatus("loading");
             const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", filterCriteria);
-            // TODO: start hack
-            //const reqBody = filterCriteria.frames[0];
-            //reqBody['gridWidth'] = filterCriteria.gridWidth;
-            //const res = await axios.post<VividKeyframe[][]>("http://localhost:5000/execute_query", reqBody);
-            // TODO: end hack
             setResultMatrix(res.data);
             setQueryStatus("result");
             setApiStatus("online");
@@ -400,7 +396,8 @@ const MainPage: NextPage = () => {
                                     </Typography>
                                     <Typography variant="body1" component="p">
                                         If the timeline reflects your video, submit the query. Please note: Only the
-                                        blue dots are considered, the top red dot with the dashed canvas is your
+                                        blue dots are considered in ascending order, the top red dot with the dashed
+                                        canvas is your
                                         personal scratchpad.
                                     </Typography>
                                 </CardContent>
