@@ -28,6 +28,7 @@ import {useEffect, useState} from "react";
 import Head from "next/dist/next-server/lib/head";
 import {Rnd} from "react-rnd";
 import {
+    Alert,
     Autocomplete,
     Timeline,
     TimelineConnector,
@@ -547,6 +548,8 @@ const MainPage: NextPage = () => {
             </AppBar>
             <DialogContent>
                 {queryStatus === "loading" && <div style={{textAlign: "center"}}><CircularProgress/></div>}
+                {((!resultMatrix.length || !resultMatrix[0].length) && queryStatus !== "loading") &&
+                <Alert severity="error">Query returned no result. Please try a different query!</Alert>}
                 {queryStatus === "result" &&
                 <GridList cellHeight={"auto"} cols={!!resultMatrix.length ? resultMatrix[0].length : 0}>
                     {resultMatrix.map((matRow, idx1) => matRow.map((item, idx2) => <GridListTile
