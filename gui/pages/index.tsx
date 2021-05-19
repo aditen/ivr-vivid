@@ -237,160 +237,189 @@ const MainPage: NextPage = () => {
         </AppBar>
         <Grid justify="space-around"
               container>
-            <Grid item lg={5}>
-                <Card>
-                    <CardContent>
-                        <Typography gutterBottom variant="h4" component="h4">
-                            Query videos
-                        </Typography>
-                        <Typography gutterBottom>
-                            1. Choose Grid Width
-                        </Typography>
-                        <Slider
-                            value={filterCriteria.gridWidth}
-                            onChange={(event, value) => setFilterCriteria({
-                                ...filterCriteria,
-                                gridWidth: value as number
-                            })}
-                            valueLabelDisplay="on"
-                            step={2}
-                            marks
-                            min={4}
-                            max={12}
-                        />
-                        <GridList cellHeight={"auto"} cols={filterCriteria.gridWidth}>
-                            {getIndexArray(filterCriteria.gridWidth).map(item => <GridListTile key={item}>
-                                <img style={{width: "100%", height: "100%", border: "2px solid black"}}
-                                     src="https://i.ytimg.com/vi/Jr3tlqXH7is/maxresdefault.jpg"/>
-                            </GridListTile>)}
-                        </GridList>
-                    </CardContent>
-                </Card>
-                <Card style={{marginTop: 10, marginBottom: 10}}>
-                    <CardContent>
-                        <Typography gutterBottom>
-                            2. Sketch frame(s)
-                        </Typography>
-                        <div style={{display: "flex"}}>
-                            <Autocomplete
-                                onChange={(event, newValue) => {
-                                    setTypeToAdd(newValue as YoloClassName);
-                                }}
-                                value={typeToAdd}
-                                options={YoloTypesAsArray}
-                                fullWidth={true}
-                                renderInput={(params) => <TextField {...params} label="Choose object..."
-                                                                    variant="outlined"/>}
-                            />
-                            <ButtonGroup color="primary" style={{marginLeft: 10}}>
-                                <Button variant={detectionType === "zero" ? "contained" : "outlined"}
-                                        onClick={() => setDetectionType("zero")}>Zero</Button>
-                                <Button variant={detectionType === "one" ? "contained" : "outlined"}
-                                        onClick={() => setDetectionType("one")}>One</Button>
-                                <Button variant={detectionType === "range" ? "contained" : "outlined"}
-                                        onClick={() => setDetectionType("range")}>Range</Button>
-                            </ButtonGroup>
-                            <IconButton disabled={!typeToAdd} onClick={() => {
-                                addYoloObject();
-                            }}><Icon>add</Icon></IconButton>
-                        </div>
-                        {detectionType === "range" && <Slider style={{margin: 5}}
-                                                              min={1}
-                                                              max={15}
-                                                              value={quantityRange}
-                                                              marks={quantityMarks}
-                                                              onChange={(event, value) => setQuantityRange(value as number[])}
-                        />}
-                        <div>
-                            {currentKeyframeFilterCriteria.quantities.map((cls, clsIdx) => <Chip
-                                variant={"outlined"}
-                                style={{
-                                    marginTop: 10,
-                                    marginRight: 5
-                                }}
-                                key={clsIdx}
-                                label={(cls.minQuantity === 0 && cls.maxQuantity === 0) ? ("no " + cls.className) : cls.maxQuantity === 15 ? (cls.minQuantity + "+ " + cls.className) : (cls.minQuantity + "-" + cls.maxQuantity + "x " + cls.className)}
-                                onDelete={() => {
-                                    setCurrentKeyframeFilterCriteria({
-                                        ...currentKeyframeFilterCriteria,
-                                        quantities: [...currentKeyframeFilterCriteria.quantities.filter(minQuant => minQuant.className !== cls.className)]
-                                    })
-                                }}
-                            />)}
-                        </div>
-                        <div style={{marginTop: 15, marginBottom: 15}}>
-                            <Autocomplete
-                                onInputChange={(event, newValue) => {
-                                    fetchClassSuggestions(newValue).catch(console.error);
-                                }}
-                                onChange={(event, value) => {
-                                    if (!!value) {
-                                        setCurrentKeyframeFilterCriteria({
-                                            ...currentKeyframeFilterCriteria,
-                                            classNames: [...currentKeyframeFilterCriteria.classNames, value]
-                                        })
-                                    }
-                                }}
-                                filterOptions={(options: string[]) => {
-                                    return options.filter(option => currentKeyframeFilterCriteria.classNames.indexOf(option) === -1);
-                                }}
-                                renderOption={option => option.replaceAll("_", " ")}
-                                options={classSuggestions}
-                                fullWidth={true}
-                                renderInput={(params) => <TextField {...params} label="Enter image class..."
-                                                                    variant="outlined"/>}
-                            />
-                        </div>
-                        <div>
-                            {currentKeyframeFilterCriteria.classNames.map((cls, clsIdx) => <Chip
-                                variant={"outlined"}
-                                style={{margin: 5}}
-                                key={clsIdx}
-                                label={cls.replaceAll("_", " ")}
-                                onDelete={() => {
-                                    currentKeyframeFilterCriteria.classNames.splice(clsIdx, 1);
-                                    setCurrentKeyframeFilterCriteria({...currentKeyframeFilterCriteria});
-                                }}
-                            />)}
-                        </div>
-                        <div style={{marginTop: 15, marginBottom: 15}}>
-                            <TextField fullWidth={true} label="Enter video text" variant="outlined"
-                                       value={currentKeyframeFilterCriteria.text}
-                                       onChange={event => setCurrentKeyframeFilterCriteria({
-                                           ...currentKeyframeFilterCriteria,
-                                           text: event.target.value
-                                       })}/>
-                        </div>
-                    </CardContent>
-                    <CardActions style={{paddingLeft: 15}}>
-                        <Button variant={"contained"} color={"primary"}
-                                disabled={currentKeyframeFilterCriteria.locatedObjects.length == 0 && currentKeyframeFilterCriteria.quantities.length == 0 && currentKeyframeFilterCriteria.classNames.length == 0 && !currentKeyframeFilterCriteria.text}
-                                onClick={() => addFrame()}><Icon>done</Icon>Add frame</Button>
-                        <Button variant={"contained"} color={"secondary"} onClick={() => {
-                            resetCurrentFrame();
-                        }}><Icon>delete</Icon>Clear</Button>
-                    </CardActions>
-                </Card>
-                <Card>
-                    <CardContent>
-                        <Typography gutterBottom>
-                            3. Submit query
-                        </Typography>
-                    </CardContent>
-                    <CardActions style={{paddingLeft: 15}}>
-                        <Button variant={"contained"} color={"primary"}
-                                disabled={filterCriteria.frames.length == 0}
-                                onClick={() => executeQuery()}><Icon>done</Icon>Submit</Button>
-                        <Button variant={"contained"} color={"secondary"} onClick={() => {
-                            setFilterCriteria({frames: [], gridWidth: filterCriteria.gridWidth});
-                        }}><Icon>delete</Icon>Clear</Button>
-                    </CardActions>
-                </Card>
+            <Grid item xl={5}>
+                <Timeline>
+                    <TimelineItem>
+                        <TimelineSeparator>
+                            <TimelineDot><Icon>apps</Icon></TimelineDot>
+                            <TimelineConnector/>
+                        </TimelineSeparator>
+                        <TimelineContent>
+                            <Card style={{width: isLargeScreen ? '640px' : '344px'}}>
+                                <CardContent>
+                                    <Typography gutterBottom variant="h6" component="h6">
+                                        1. Choose Result Grid Width
+                                    </Typography>
+                                    <Slider
+                                        value={filterCriteria.gridWidth}
+                                        onChange={(event, value) => setFilterCriteria({
+                                            ...filterCriteria,
+                                            gridWidth: value as number
+                                        })}
+                                        valueLabelDisplay="auto"
+                                        step={2}
+                                        marks
+                                        min={4}
+                                        max={12}
+                                    />
+                                    <GridList cellHeight={"auto"} cols={filterCriteria.gridWidth}>
+                                        {getIndexArray(filterCriteria.gridWidth).map(item => <GridListTile key={item}>
+                                            <img style={{width: "100%", height: "100%", border: "2px solid black"}}
+                                                 src="https://i.ytimg.com/vi/Jr3tlqXH7is/maxresdefault.jpg"/>
+                                        </GridListTile>)}
+                                    </GridList>
+                                </CardContent>
+                            </Card>
+                        </TimelineContent>
+                    </TimelineItem>
+                    <TimelineItem>
+                        <TimelineSeparator>
+                            <TimelineDot><Icon>fit_screen</Icon></TimelineDot>
+                            <TimelineConnector/>
+                        </TimelineSeparator>
+                        <TimelineContent>
+                            <Card style={{
+                                marginTop: 10, marginBottom: 10, width: isLargeScreen ? '640px' : '344px'
+                            }}>
+                                <CardContent>
+                                    <Typography gutterBottom variant="h6" component="h6">
+                                        2. Sketch and add frame(s)
+                                    </Typography>
+                                    <div style={{display: "flex"}}>
+                                        <Autocomplete
+                                            onChange={(event, newValue) => {
+                                                setTypeToAdd(newValue as YoloClassName);
+                                            }}
+                                            value={typeToAdd}
+                                            options={YoloTypesAsArray}
+                                            fullWidth={true}
+                                            renderInput={(params) => <TextField {...params} label="Choose object..."
+                                                                                variant="outlined"/>}
+                                        />
+                                        <ButtonGroup color="primary" style={{marginLeft: 10}}>
+                                            <Button variant={detectionType === "zero" ? "contained" : "outlined"}
+                                                    onClick={() => setDetectionType("zero")}>Zero</Button>
+                                            <Button variant={detectionType === "one" ? "contained" : "outlined"}
+                                                    onClick={() => setDetectionType("one")}>One</Button>
+                                            <Button variant={detectionType === "range" ? "contained" : "outlined"}
+                                                    onClick={() => setDetectionType("range")}>Range</Button>
+                                        </ButtonGroup>
+                                        <IconButton disabled={!typeToAdd} onClick={() => {
+                                            addYoloObject();
+                                        }}><Icon>add</Icon></IconButton>
+                                    </div>
+                                    {detectionType === "range" && <Slider style={{margin: 5}}
+                                                                          min={1}
+                                                                          max={15}
+                                                                          value={quantityRange}
+                                                                          marks={quantityMarks}
+                                                                          onChange={(event, value) => setQuantityRange(value as number[])}
+                                    />}
+                                    <div>
+                                        {currentKeyframeFilterCriteria.quantities.map((cls, clsIdx) => <Chip
+                                            variant={"outlined"}
+                                            style={{
+                                                marginTop: 10,
+                                                marginRight: 5
+                                            }}
+                                            key={clsIdx}
+                                            label={(cls.minQuantity === 0 && cls.maxQuantity === 0) ? ("no " + cls.className) : cls.maxQuantity === 15 ? (cls.minQuantity + "+ " + cls.className) : (cls.minQuantity + "-" + cls.maxQuantity + "x " + cls.className)}
+                                            onDelete={() => {
+                                                setCurrentKeyframeFilterCriteria({
+                                                    ...currentKeyframeFilterCriteria,
+                                                    quantities: [...currentKeyframeFilterCriteria.quantities.filter(minQuant => minQuant.className !== cls.className)]
+                                                })
+                                            }}
+                                        />)}
+                                    </div>
+                                    <div style={{marginTop: 15, marginBottom: 15}}>
+                                        <Autocomplete
+                                            onInputChange={(event, newValue) => {
+                                                fetchClassSuggestions(newValue).catch(console.error);
+                                            }}
+                                            onChange={(event, value) => {
+                                                if (!!value) {
+                                                    setCurrentKeyframeFilterCriteria({
+                                                        ...currentKeyframeFilterCriteria,
+                                                        classNames: [...currentKeyframeFilterCriteria.classNames, value]
+                                                    })
+                                                }
+                                            }}
+                                            filterOptions={(options: string[]) => {
+                                                return options.filter(option => currentKeyframeFilterCriteria.classNames.indexOf(option) === -1);
+                                            }}
+                                            renderOption={option => option.replaceAll("_", " ")}
+                                            options={classSuggestions}
+                                            fullWidth={true}
+                                            renderInput={(params) => <TextField {...params} label="Enter image class..."
+                                                                                variant="outlined"/>}
+                                        />
+                                    </div>
+                                    <div>
+                                        {currentKeyframeFilterCriteria.classNames.map((cls, clsIdx) => <Chip
+                                            variant={"outlined"}
+                                            style={{margin: 5}}
+                                            key={clsIdx}
+                                            label={cls.replaceAll("_", " ")}
+                                            onDelete={() => {
+                                                currentKeyframeFilterCriteria.classNames.splice(clsIdx, 1);
+                                                setCurrentKeyframeFilterCriteria({...currentKeyframeFilterCriteria});
+                                            }}
+                                        />)}
+                                    </div>
+                                    <div style={{marginTop: 15, marginBottom: 15}}>
+                                        <TextField fullWidth={true} label="Enter video text" variant="outlined"
+                                                   value={currentKeyframeFilterCriteria.text}
+                                                   onChange={event => setCurrentKeyframeFilterCriteria({
+                                                       ...currentKeyframeFilterCriteria,
+                                                       text: event.target.value
+                                                   })}/>
+                                    </div>
+                                </CardContent>
+                                <CardActions style={{paddingLeft: 15}}>
+                                    <Button variant={"contained"} color={"primary"}
+                                            disabled={currentKeyframeFilterCriteria.locatedObjects.length == 0 && currentKeyframeFilterCriteria.quantities.length == 0 && currentKeyframeFilterCriteria.classNames.length == 0 && !currentKeyframeFilterCriteria.text}
+                                            onClick={() => addFrame()}><Icon>done</Icon>Add frame</Button>
+                                    <Button variant={"contained"} color={"secondary"} onClick={() => {
+                                        resetCurrentFrame();
+                                    }}><Icon>delete</Icon>Clear</Button>
+                                </CardActions>
+                            </Card>
+                        </TimelineContent>
+                    </TimelineItem>
+                    <TimelineItem>
+                        <TimelineSeparator>
+                            <TimelineDot><Icon>check</Icon></TimelineDot>
+                            <TimelineConnector/>
+                        </TimelineSeparator>
+                        <TimelineContent>
+                            <Card style={{width: isLargeScreen ? '640px' : '344px'}}>
+                                <CardContent>
+                                    <Typography gutterBottom variant="h6" component="h6">
+                                        3. Submit query
+                                    </Typography>
+                                    <Typography variant="body1" component="p">
+                                        If the timeline reflects your video, submit the query. Please note: Only the
+                                        blue dots are considered, the top red dot with the dashed canvas is your
+                                        personal scratchpad.
+                                    </Typography>
+                                </CardContent>
+                                <CardActions style={{paddingLeft: 15}}>
+                                    <Button variant={"contained"} color={"primary"}
+                                            disabled={filterCriteria.frames.length == 0}
+                                            onClick={() => executeQuery()}><Icon>done</Icon>Submit</Button>
+                                    <Button variant={"contained"} color={"secondary"} onClick={() => {
+                                        setFilterCriteria({frames: [], gridWidth: filterCriteria.gridWidth});
+                                    }}><Icon>delete</Icon>Clear</Button>
+                                </CardActions>
+                            </Card>
+                        </TimelineContent>
+                    </TimelineItem>
+                </Timeline>
             </Grid>
-            <Grid item lg={5}>
-
+            <Grid item xl={5}>
                 <div>
-                    <Timeline style={{margin: "auto"}}>
+                    <Timeline>
                         <TimelineItem>
                             <TimelineSeparator>
                                 <TimelineDot color={"secondary"}><Icon>add</Icon></TimelineDot>
@@ -428,7 +457,6 @@ const MainPage: NextPage = () => {
                                         <img draggable={false} style={{width: "100%", height: "100%"}}
                                              src={"/" + fig.className + ".png"}/>
                                     </Rnd>)}
-
                                 </div>
                             </TimelineContent>
                         </TimelineItem>
@@ -438,7 +466,7 @@ const MainPage: NextPage = () => {
                                 <TimelineConnector/>
                             </TimelineSeparator>
                             <TimelineContent>
-                                <div style={{
+                                {!!value.locatedObjects.length && <div style={{
                                     width: isLargeScreen ? '640px' : '344px',
                                     height: isLargeScreen ? '360px' : '171px',
                                     borderColor: "black",
@@ -447,18 +475,7 @@ const MainPage: NextPage = () => {
                                 }}>
                                     {value.locatedObjects.map((fig, idx) => <Rnd key={idx} bounds={"parent"}
                                                                                  disableDragging={true}
-                                                                                 enableResizing={
-                                                                                     {
-                                                                                         bottom: false,
-                                                                                         bottomLeft: false,
-                                                                                         bottomRight: false,
-                                                                                         left: false,
-                                                                                         right: false,
-                                                                                         top: false,
-                                                                                         topLeft: false,
-                                                                                         topRight: false,
-                                                                                     }
-                                                                                 }
+                                                                                 enableResizing={false}
                                                                                  default={{
                                                                                      x: fig.xOffset * (isLargeScreen ? 640 : 344),
                                                                                      y: fig.yOffset * (isLargeScreen ? 360 : 171),
@@ -481,7 +498,24 @@ const MainPage: NextPage = () => {
                                         <img draggable={false} style={{width: "100%", height: "100%"}}
                                              src={"/" + fig.className + ".png"}/>
                                     </Rnd>)}
+                                </div>}
+                                {!value.locatedObjects.length && <Typography style={{
+                                    width: isLargeScreen ? '640px' : '344px',
+                                }} variant={"body1"} component={"div"}>No objects chosen for this scene</Typography>}
+                                <div>
+                                    {value.quantities.map((cls, clsIdx) => <Chip
+                                        variant={"outlined"}
+                                        style={{
+                                            marginTop: 10,
+                                            marginRight: 5
+                                        }}
+                                        key={clsIdx}
+                                        label={(cls.minQuantity === 0 && cls.maxQuantity === 0) ? ("no " + cls.className) : cls.maxQuantity === 15 ? (cls.minQuantity + "+ " + cls.className) : (cls.minQuantity + "-" + cls.maxQuantity + "x " + cls.className)}
+                                    />)}
                                 </div>
+                                {!!value.text && <Typography variant="body1" component="p">
+                                    Search text: {value.text}
+                                </Typography>}
                             </TimelineContent>
                         </TimelineItem>)}
                     </Timeline>
