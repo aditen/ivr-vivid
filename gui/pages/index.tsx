@@ -553,11 +553,12 @@ const MainPage: NextPage = () => {
                         key={idx1 + "-" + idx2}
                         cols={1}>
                         {!!item && <><img style={{width: "100%", height: "auto"}} src={KeyframeUtils.getUrl(item)}/>
-                            <GridListTileBar titlePosition={"top"} actionIcon={
-                                <IconButton style={{color: "white"}} onClick={() => submit(item)}>
-                                    <Icon>check</Icon>
-                                </IconButton>
-                            }/>
+                            <GridListTileBar style={{backgroundColor: "transparent"}} titlePosition={"top"}
+                                             actionIcon={
+                                                 <IconButton style={{color: "white"}} onClick={() => submit(item)}>
+                                                     <Icon>check</Icon>
+                                                 </IconButton>
+                                             }/>
                             <GridListTileBar title={item.title} actionIcon={
                                 <IconButton style={{color: "white"}} onClick={() => setKeyframeToDisplay(item)}>
                                     <Icon>info</Icon>
