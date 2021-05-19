@@ -111,12 +111,12 @@ const MainPage: NextPage = () => {
     const submit = (kf: VividKeyframe) => {
         if (!!visualKnownItemVideo) {
             if (kf.video === visualKnownItemVideo.id) {
-                alert("Congrats! Correct vide found!");
+                alert("Congrats! Correct video found!");
             } else {
                 alert("Sorry! that was wrong...")
             }
         } else {
-            alert("will be implemented!");
+            alert("Submitting to VBS server will be implemented!");
         }
     };
 
