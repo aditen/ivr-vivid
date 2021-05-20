@@ -10,7 +10,7 @@ from PIL import Image
 from sklearn.preprocessing import StandardScaler
 from xpysom import XPySom
 
-from data_classes import FilterCriteria, Keyframe, RandomVideo
+from data_classes import FilterCriteria, Keyframe, RandomVideo, KeyframeFilterCriteria
 
 prediction_root = os.getenv(key="PREDICTIONS_ROOT",
                             default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
@@ -101,11 +101,10 @@ class QueryHandler:
                     location_grid[row_index][column_index] = None
         return location_grid
 
-    def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
-        print("Filtering according to criteria", filter_criteria)
-        number_of_localization_queries = len(filter_criteria.locatedObjects)
-        number_of_class_queries = len(filter_criteria.classNames)
-        number_of_count_queries = len(filter_criteria.quantities)
+    def get_first_item_sql(self, kf_filter: KeyframeFilterCriteria):
+        number_of_localization_queries = len(kf_filter.locatedObjects)
+        number_of_class_queries = len(kf_filter.classNames)
+        number_of_count_queries = len(kf_filter.quantities)
 
         # 1: We filter the keyframes
         sql_statement = "SELECT kf.video_fk, kf.frame, kf.start_time, vid.vimeo_id, vid.description, vid.tags, " \
@@ -118,16 +117,16 @@ class QueryHandler:
             sql_statement += " and exists(select 1 from ivr.nasnet_classification cls2 where " \
                              "cls2.video_fk = kf.video_fk and cls2.frame = kf.frame and cls2.class in " \
                              "(" + ",".join(["?"] * number_of_class_queries) + ") and cls2.confidence >= 0.5)"
-            sql_data = sql_data + filter_criteria.classNames
+            sql_data = sql_data + kf_filter.classNames
 
         # by text in keyframe (tesseract)
-        if filter_criteria.text is not None and filter_criteria.text != "":
+        if kf_filter.text is not None and kf_filter.text != "":
             sql_statement += " and exists(select 1 from ivr.tesseract_text ivrt where " \
                              "ivrt.video_fk = kf.video_fk and ivrt.frame = kf.frame and ivrt.text like ?)"
-            sql_data = sql_data + ["%" + filter_criteria.text + "%"]
+            sql_data = sql_data + ["%" + kf_filter.text + "%"]
 
         for i in range(0, number_of_localization_queries):
-            localization_filter = filter_criteria.locatedObjects[i]
+            localization_filter = kf_filter.locatedObjects[i]
             yolo_table_name = "yolo" + str(i)
             center_x = localization_filter.xOffset + localization_filter.width / 2
             center_y = localization_filter.yOffset + localization_filter.height / 2
@@ -143,7 +142,7 @@ class QueryHandler:
 
         for i in range(0, number_of_count_queries):
             min_count_table_name = "mc" + str(i)
-            obj = filter_criteria.quantities[i]
+            obj = kf_filter.quantities[i]
 
             if obj.minQuantity == 0 and obj.maxQuantity == 0:
                 sql_statement += f' and (kf.video_fk, kf.frame) not in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
@@ -159,8 +158,96 @@ class QueryHandler:
                 else:
                     sql_statement += "between ? and ?)"
                     sql_data = sql_data + [obj.className, obj.minQuantity, obj.maxQuantity]
+        return sql_statement, sql_data
 
-        limit = min(12 * 12, filter_criteria.gridWidth * 12)
+    def get_nth_elem_sql(self, kf_filter: KeyframeFilterCriteria, n: int = 1):
+        number_of_localization_queries = len(kf_filter.locatedObjects)
+        number_of_class_queries = len(kf_filter.classNames)
+        number_of_count_queries = len(kf_filter.quantities)
+
+        previous_kf = "kf"
+        if n > 1:
+            previous_kf = "kf2" + str(n - 1)
+        kf_table_name = "kf2" + str(n)
+        # 1: We filter the keyframes
+        sql_statement = f' and exists(select 1 from ivr.keyframes {kf_table_name} where ' \
+                        f'{kf_table_name}.video_fk = {previous_kf}.video_fk and ' \
+                        f'{kf_table_name}.frame > {previous_kf}.frame'
+        sql_data = []
+
+        # by keyframe class (nasnet)
+        if number_of_class_queries > 0:
+            nas_class = "nas_cls" + str(n)
+            sql_statement += f' and exists(select 1 from ivr.nasnet_classification {nas_class} where ' \
+                             f'{nas_class}.video_fk = {kf_table_name}.video_fk and ' \
+                             f'{nas_class}.frame = {kf_table_name}.frame ' \
+                             f'and {nas_class}.class in ({",".join(["?"] * number_of_class_queries)}) ' \
+                             f'and {nas_class}.confidence >= 0.5)'
+            sql_data = sql_data + kf_filter.classNames
+
+        # by text in keyframe (tesseract)
+        if kf_filter.text is not None and kf_filter.text != "":
+            tess_txt = "tess_txt" + str(n)
+            sql_statement += f' and exists(select 1 from ivr.tesseract_text {tess_txt} where ' \
+                             f'{tess_txt}.video_fk = {kf_table_name}.video_fk and ' \
+                             f'{tess_txt}.frame = {kf_table_name}.frame and {tess_txt}.text like ?)'
+            sql_data = sql_data + ["%" + kf_filter.text + "%"]
+
+        for i in range(0, number_of_localization_queries):
+            localization_filter = kf_filter.locatedObjects[i]
+            yolo_table_name = "yolo" + str(n) + "q" + str(i)
+            center_x = localization_filter.xOffset + localization_filter.width / 2
+            center_y = localization_filter.yOffset + localization_filter.height / 2
+            sql_statement += f' and exists(select 1=1 from ivr.yolo_detection {yolo_table_name} where ' \
+                             f'{yolo_table_name}.video_fk = {kf_table_name}.video_fk and ' \
+                             f'{yolo_table_name}.frame = {kf_table_name}.frame and ' \
+                             f'{yolo_table_name}.class = ? and ' \
+                             f'{yolo_table_name}.center_x between ? and ? and {yolo_table_name}.center_y between ? and ? and ' \
+                             f'{yolo_table_name}.width between ? and ? and {yolo_table_name}.height between ? and ? and ' \
+                             f'{yolo_table_name}.confidence >= 0.5)'
+            sql_data = sql_data + [localization_filter.className, center_x - 0.15, center_x + 0.15, center_y - 0.15,
+                                   center_y + 0.15, localization_filter.width - 0.15, localization_filter.width + 0.15,
+                                   localization_filter.height - 0.15, localization_filter.height + 0.15]
+
+        for i in range(0, number_of_count_queries):
+            min_count_table_name = "mc" + str(n) + "q" + str(i)
+            obj = kf_filter.quantities[i]
+
+            if obj.minQuantity == 0 and obj.maxQuantity == 0:
+                sql_statement += f' and ({kf_table_name}.video_fk, {kf_table_name}.frame) not in ' \
+                                 f'(select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
+                                 f'{min_count_table_name}.class = ? and {min_count_table_name}.confidence >= 0.5 group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) >= 1)'
+                sql_data = sql_data + [obj.className, obj.minQuantity]
+            else:
+                sql_statement += f' and ({kf_table_name}.video_fk, {kf_table_name}.frame) in (select {min_count_table_name}.video_fk, {min_count_table_name}.frame from ivr.yolo_detection {min_count_table_name} where ' \
+                                 f'{min_count_table_name}.class = ? and {min_count_table_name}.confidence >= 0.5 group by {min_count_table_name}.video_fk, {min_count_table_name}.frame having count(*) '
+                # case distiction: 15 means 15+, else is range
+                if obj.maxQuantity == 15:
+                    sql_statement += ">= ?)"
+                    sql_data = sql_data + [obj.className, obj.minQuantity]
+                else:
+                    sql_statement += "between ? and ?)"
+                    sql_data = sql_data + [obj.className, obj.minQuantity, obj.maxQuantity]
+
+        return sql_statement, sql_data
+
+    def handle_query(self, filter_criteria: FilterCriteria) -> List[List[Keyframe]]:
+        print("Filtering according to criteria", filter_criteria)
+
+        if len(filter_criteria.frames) == 0:
+            print("No filters defined!")
+            return [[]]
+
+        sql_statement, sql_data = self.get_first_item_sql(filter_criteria.frames[0])
+
+        for i in range(1, len(filter_criteria.frames)):
+            sql_statement_it, sql_data_it = self.get_nth_elem_sql(filter_criteria.frames[i], i)
+            sql_statement += sql_statement_it
+            sql_data = sql_data + sql_data_it
+
+        sql_statement += ("".join([")"] * (len(filter_criteria.frames) - 1)))
+
+        limit = min(16 * 20, filter_criteria.gridWidth * 20)
         sql_statement += " order by rand() limit " + str(limit)
         print("SQL statement:", sql_statement)
         print("SQL data:", sql_data)
@@ -170,7 +257,7 @@ class QueryHandler:
         cursor.close()
         print("SQL result:", sql_result)
 
-        all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png":
+        all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + ".png":
                            Keyframe(title=title, video=video, idx=frame, totalKfsVid=max_frame,
                                     atTime=str(ceil(start_time)) + "s",
                                     description=description, vimeoId=vimeo_id,
@@ -185,7 +272,7 @@ class QueryHandler:
             som_map = self.produce_SOM_grid(all_kf,
                                             filter_criteria.gridWidth,
                                             ceil(float(len(all_kf)) / filter_criteria.gridWidth),
-                                            10)
+                                            20)
         else:
             som_map = np.array([[]])
         list_som = som_map.tolist()

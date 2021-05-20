@@ -24,12 +24,18 @@ class Quantity:
 
 @dataclass_json
 @dataclass
-class FilterCriteria:
+class KeyframeFilterCriteria:
     locatedObjects: List[LocatedObject]
     quantities: List[Quantity]
     classNames: List[str]
-    gridWidth: int
     text: Optional[str] = None
+
+
+@dataclass_json
+@dataclass
+class FilterCriteria:
+    frames: List[KeyframeFilterCriteria]
+    gridWidth: int
 
 
 @dataclass_json
