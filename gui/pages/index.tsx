@@ -79,7 +79,7 @@ const MainPage: NextPage = () => {
         text: ""
     });
     const [filterCriteria, setFilterCriteria] = useState<FilterCriteria>({
-        gridWidth: isLargeScreen ? 8 : 4,
+        gridWidth: isLargeScreen ? 10 : 4,
         frames: []
     });
     const [visualKnownItemVideo, setVisualKnownItemVideo] = useState<RandomVideo | undefined>();
@@ -87,7 +87,7 @@ const MainPage: NextPage = () => {
     const [detectionType, setDetectionType] = useState<'zero' | 'one' | 'range'>("one");
     const [quantityRange, setQuantityRange] = useState<number[]>([1, 15]);
 
-    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 8 : 4}), [isLargeScreen]);
+    useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 10 : 4}), [isLargeScreen]);
 
     const checkApiStatus = async () => {
         try {
@@ -257,7 +257,7 @@ const MainPage: NextPage = () => {
                                         step={2}
                                         marks
                                         min={4}
-                                        max={12}
+                                        max={16}
                                     />
                                     <GridList cellHeight={"auto"} cols={filterCriteria.gridWidth}>
                                         {getIndexArray(filterCriteria.gridWidth).map(item => <GridListTile key={item}>
@@ -480,14 +480,6 @@ const MainPage: NextPage = () => {
                                                                                      width: fig.width * (isLargeScreen ? 640 : 344),
                                                                                      height: fig.height * (isLargeScreen ? 360 : 171)
                                                                                  }}
-                                                                                 onDragStop={(e, d) => {
-                                                                                     fig.xOffset = d.x;
-                                                                                     fig.yOffset = d.y;
-                                                                                 }}
-                                                                                 onResizeStop={(e, direction, ref, delta, position) => {
-                                                                                     fig.width = Number.parseFloat(ref.style.width.replaceAll("px", ""));
-                                                                                     fig.height = Number.parseFloat(ref.style.height.replaceAll("px", ""));
-                                                                                 }}
                                                                                  style={{
                                                                                      borderColor: "black",
                                                                                      borderWidth: "medium",
@@ -541,7 +533,7 @@ const MainPage: NextPage = () => {
                         style={{height: 50, width: "auto", marginRight: 10}}/>
                     <Typography variant={"h4"} style={{flexGrow: 1}}>
                         Results</Typography>
-                    {resultMatrix.filter(value => value.filter(value1 => !value1).length === 0).length === 12 &&
+                    {resultMatrix.filter(value => value.filter(value1 => !value1).length === 0).length === 20 &&
                     <Icon style={{marginRight: 5}}>warning</Icon>}
                     <IconButton onClick={() => setQueryStatus("defining")}><Icon>close</Icon></IconButton>
                 </Toolbar>
