@@ -247,7 +247,7 @@ class QueryHandler:
 
         sql_statement += ("".join([")"] * (len(filter_criteria.frames) - 1)))
 
-        limit = min(12 * 12, filter_criteria.gridWidth * 12)
+        limit = min(16 * 20, filter_criteria.gridWidth * 20)
         sql_statement += " order by rand() limit " + str(limit)
         print("SQL statement:", sql_statement)
         print("SQL data:", sql_data)
@@ -257,7 +257,7 @@ class QueryHandler:
         cursor.close()
         print("SQL result:", sql_result)
 
-        all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + "_RKF.png":
+        all_results = {keyframe_root + video + "/shot" + video + "_" + str(frame) + ".png":
                            Keyframe(title=title, video=video, idx=frame, totalKfsVid=max_frame,
                                     atTime=str(ceil(start_time)) + "s",
                                     description=description, vimeoId=vimeo_id,
@@ -272,7 +272,7 @@ class QueryHandler:
             som_map = self.produce_SOM_grid(all_kf,
                                             filter_criteria.gridWidth,
                                             ceil(float(len(all_kf)) / filter_criteria.gridWidth),
-                                            10)
+                                            20)
         else:
             som_map = np.array([[]])
         list_som = som_map.tolist()
