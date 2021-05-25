@@ -86,6 +86,7 @@ const MainPage: NextPage = () => {
     const [watchingKnownVideo, setWatchingKnownVideo] = useState<boolean>(false);
     const [detectionType, setDetectionType] = useState<'zero' | 'one' | 'range'>("one");
     const [quantityRange, setQuantityRange] = useState<number[]>([1, 15]);
+    const [vbsToken, setVbsToken] = useState<string | undefined>();
 
     useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 10 : 4}), [isLargeScreen]);
 
@@ -108,7 +109,7 @@ const MainPage: NextPage = () => {
         }
     };
 
-    const submit = (kf: VividKeyframe) => {
+    const submit = async (kf: VividKeyframe) => {
         if (!!visualKnownItemVideo) {
             if (kf.video === visualKnownItemVideo.id) {
                 alert("Congrats! Correct video found!");
@@ -116,13 +117,30 @@ const MainPage: NextPage = () => {
                 alert("Sorry! that was wrong...")
             }
         } else {
-            alert("Submitting to VBS server will be implemented!");
+            const sessionResponse = await axios.get<any>("https://test.interactivevideoretrieval.com/submit?item=" + kf.video + "&shot=" + kf.idx + "&session=" + vbsToken);
+            console.log(sessionResponse.data);
         }
     };
 
     useEffect(() => {
         checkApiStatus().catch(console.error);
+        prepareSubmission("addYourUser", "addYourPassword").catch(console.error);
     }, []);
+
+    const prepareSubmission = async (username: string, password: string) => {
+        try {
+            setApiStatus("loading");
+            const sessionResponse = await axios.post<any>("https://test.interactivevideoretrieval.com/api/login", {
+                username: username,
+                password: password
+            });
+            const sessionId = sessionResponse.data['sessionId'];
+            setVbsToken(sessionId as string);
+            setApiStatus("online");
+        } catch (e) {
+            setApiStatus("error");
+        }
+    };
 
     const fetchClassSuggestions = async (query: string) => {
         try {
