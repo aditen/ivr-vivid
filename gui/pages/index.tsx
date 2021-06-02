@@ -86,6 +86,7 @@ const MainPage: NextPage = () => {
     const [watchingKnownVideo, setWatchingKnownVideo] = useState<boolean>(false);
     const [detectionType, setDetectionType] = useState<'zero' | 'one' | 'range'>("one");
     const [quantityRange, setQuantityRange] = useState<number[]>([1, 15]);
+    const [vbsToken, setVbsToken] = useState<string | undefined>();
 
     useEffect(() => setFilterCriteria({...filterCriteria, gridWidth: isLargeScreen ? 10 : 4}), [isLargeScreen]);
 
@@ -108,7 +109,7 @@ const MainPage: NextPage = () => {
         }
     };
 
-    const submit = (kf: VividKeyframe) => {
+    const submit = async (kf: VividKeyframe) => {
         if (!!visualKnownItemVideo) {
             if (kf.video === visualKnownItemVideo.id) {
                 alert("Congrats! Correct video found!");
@@ -116,13 +117,33 @@ const MainPage: NextPage = () => {
                 alert("Sorry! that was wrong...")
             }
         } else {
-            alert("Submitting to VBS server will be implemented!");
+            try {
+                await axios.get<any>("https://test.interactivevideoretrieval.com/submit?item=" + kf.video + "&shot=" + kf.idx + "&session=" + vbsToken);
+            } catch (e) {
+                alert("Error on submission!");
+            }
         }
     };
 
     useEffect(() => {
         checkApiStatus().catch(console.error);
+        prepareSubmission("addYourUser", "addYourPassword").catch(console.error);
     }, []);
+
+    const prepareSubmission = async (username: string, password: string) => {
+        try {
+            setApiStatus("loading");
+            const sessionResponse = await axios.post<any>("https://test.interactivevideoretrieval.com/api/login", {
+                username: username,
+                password: password
+            });
+            const sessionId = sessionResponse.data['sessionId'];
+            setVbsToken(sessionId as string);
+            setApiStatus("online");
+        } catch (e) {
+            setApiStatus("error");
+        }
+    };
 
     const fetchClassSuggestions = async (query: string) => {
         try {
@@ -587,12 +608,17 @@ const MainPage: NextPage = () => {
                     {keyframeToDisplay.tags.map(tag => <Chip style={{margin: 5}} key={tag} label={tag}/>)}
                 </>
                 <Timeline align="alternate">
-                    {KeyframeUtils.getTimelineUrls(keyframeToDisplay).map(kfUrl => <TimelineItem key={kfUrl}>
+                    {KeyframeUtils.getTimelineItems(keyframeToDisplay).map(item => <TimelineItem key={item.idx}>
                         <TimelineSeparator>
-                            <TimelineDot/>
+                            <TimelineSeparator>
+                                <TimelineDot><IconButton onClick={() => submit(item)}>
+                                    <Icon>check</Icon></IconButton></TimelineDot>
+                                <TimelineConnector/>
+                            </TimelineSeparator>
                             <TimelineConnector/>
                         </TimelineSeparator>
-                        <TimelineContent><img style={{width: "200px", height: "auto"}} src={kfUrl}/></TimelineContent>
+                        <TimelineContent><img style={{width: "200px", height: "auto"}}
+                                              src={KeyframeUtils.getUrl(item)}/></TimelineContent>
                     </TimelineItem>)}
                 </Timeline>
             </DialogContent>
