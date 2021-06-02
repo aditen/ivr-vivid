@@ -12,8 +12,6 @@ from xpysom import XPySom
 
 from data_classes import FilterCriteria, Keyframe, RandomVideo, KeyframeFilterCriteria
 
-prediction_root = os.getenv(key="PREDICTIONS_ROOT",
-                            default='C:/Users/41789/Documents/uni/fs21/video_retrieval/')
 keyframe_root = os.getenv(key="KEYFRAME_ROOT",
                           default='D:/keyframes/')
 
