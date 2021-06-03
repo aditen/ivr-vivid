@@ -6,7 +6,7 @@ export class KeyframeUtils {
     }
 
     public static getTimelineItems(kf: VividKeyframe): VividKeyframe[] {
-        const numToDisplay = 10.;
+        const numToDisplay = 20;
         const beginIndex = Math.max(kf.idx - (numToDisplay / 2), 1);
         const endIndex = Math.min(kf.idx + (numToDisplay / 2), kf.totalKfsVid);
         const resultArr = [];

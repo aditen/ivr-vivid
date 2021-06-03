@@ -118,7 +118,7 @@ const MainPage: NextPage = () => {
             }
         } else {
             try {
-                await axios.get<any>("https://test.interactivevideoretrieval.com/submit?item=" + kf.video + "&shot=" + kf.idx + "&session=" + vbsToken);
+                await axios.get<any>("https://interactivevideoretrieval.com/submit?item=" + kf.video + "&shot=" + kf.idx + "&session=" + vbsToken);
             } catch (e) {
                 alert("Error on submission!");
             }
@@ -133,7 +133,7 @@ const MainPage: NextPage = () => {
     const prepareSubmission = async (username: string, password: string) => {
         try {
             setApiStatus("loading");
-            const sessionResponse = await axios.post<any>("https://test.interactivevideoretrieval.com/api/login", {
+            const sessionResponse = await axios.post<any>("https://interactivevideoretrieval.com/api/login", {
                 username: username,
                 password: password
             });
