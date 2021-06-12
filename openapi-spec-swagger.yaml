@@ -1,0 +1,204 @@
+swagger: "2.0"
+info:
+  description: "This is the documenation of the Backend of the ViViD IVR system built for the FS21 seminar"
+  version: "1.0.0"
+  title: "ViViD Backend"
+host: "localhost:5000"
+tags:
+- name: "ViViD"
+  description: "All our queries"
+  externalDocs:
+    description: "Check out the source code"
+    url: "https://github.com/aditen/ivr-vivid"
+schemes:
+- "http"
+paths:
+  /suggest_imagenet_class:
+    get:
+      tags:
+      - "ViViD"
+      summary: "Get semantically similar classes"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "query"
+        name: "query"
+        description: "A word (no spaces allowed) for semantically similar classes are requested"
+        required: true
+        type: "string"
+      responses:
+        "500":
+          description: "Internal Server error"
+        "200":
+          description: "Successful answer: Semantically similar classes are returned"
+          schema:
+            $ref: "#/definitions/ArrayOfClasses"
+  /execute_query:
+    post:
+      tags:
+      - "ViViD"
+      summary: "Execute query"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "A word (no spaces allowed) for which you want semantically similar words"
+        required: true
+        schema:
+          $ref: "#/definitions/FilterCriteria"
+      responses:
+        "500":
+          description: "Internal Server error"
+        "200":
+          description: "Successful answer: Semantically similar classes are returned"
+          schema: 
+            $ref: "#/definitions/MatrixOfKeyframes"
+  /random_visual_known_item:
+    get:
+      tags:
+      - "ViViD"
+      summary: "Get random video for Visual known item search testing"
+      produces:
+      - "application/json"
+      responses:
+        "500":
+          description: "Internal Server error"
+        "200":
+          description: "Successful answer: Random video is returned"
+          schema:
+            $ref: "#/definitions/RandomVideo"
+
+definitions:
+  MatrixOfKeyframes:
+    type: "array"
+    items:
+      $ref: "#/definitions/ArrayOfKeyframes"
+  ArrayOfKeyframes:
+    type: "array"
+    items:
+      $ref: "#/definitions/Keyframe"
+  ArrayOfClasses:
+    type: "array"
+    items:
+      type: "string"
+      example: "sports car"
+  FilterCriteria:
+    type: "object"
+    properties:
+      gridWith:
+        type: "integer"
+        format: "int64"
+        example: 6
+      frames:
+        type: "array"
+        items:
+          $ref: "#/definitions/KeyframeFilterCriteria"
+  KeyframeFilterCriteria:
+    type: "object"
+    required:
+        - locatedObjects
+        - quantitites
+        - classNames
+    description: "The filter criteria per frame. Array types need to supply an array even if no filter of this type is desired. Every criteria is binding with respect to the threshold"
+    properties:
+      locatedObjects:
+        type: "array"
+        items:
+          $ref: "#/definitions/LocatedObject"
+      quantitites:
+        type: "array"
+        items:
+          $ref: "#/definitions/Quantity"
+      classNames:
+        type: "array"
+        items:
+          type: "string"
+          example: "sports car"
+      text:
+        type: "string"
+        example: "passo"
+  LocatedObject:
+    type: "object"
+    properties:
+      xOffset:
+        type: "number"
+        format: "double"
+        example: 0.5
+      yOffset:
+        type: "number"
+        format: "double"
+        example: 0.5
+      width:
+        type: "number"
+        format: "double"
+        example: 0.25
+      height:
+        type: "number"
+        format: "double"
+        example: 0.25
+      className:
+        type: "string"
+        example: "person"
+  Quantity:
+    type: "object"
+    properties:
+      minQuantity: 
+        type: "number"
+        format: "int64"
+        example: 1
+      maxQuantity:
+        type: "number"
+        format: "int64"
+        example: 99
+      className: 
+        type: "string"
+        example: "person"
+  Keyframe:
+    type: "object"
+    properties:
+      title: 
+        type: "string"
+        example: "Fancy video title"
+      video: 
+        type: "string"
+        example: "00032"
+      vimeoId: 
+        type: "string"
+        example: "599254"
+      idx:
+        type: "number"
+        format: "int64"
+        example: 1
+      totalKfsVid:
+        type: "number"
+        format: "int64"
+        example: 42
+      atTime:
+        type: "string"
+        example: "42s"
+      description:
+        type: "string"
+        example: "I am a fancy video description"
+      tags:
+        type: array
+        items:
+          type: "string"
+          example: "tag"
+  RandomVideo:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        example: "00032"
+      vimeoId:
+        type: "string"
+        example: "599254"
+      atTime:
+        type: "number"
+        format: "int64"
+        example: 42
+
+externalDocs:
+  description: "Check out the source code"
+  url: "https://github.com/aditen/ivr-vivid"
