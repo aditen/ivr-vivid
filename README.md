@@ -1,3 +1,4 @@
+[![swagger-editor](https://img.shields.io/badge/open--API-in--editor-brightgreen.svg?style=flat&label=client%20open-api-v3)](https://editor.swagger.io/?url=https://raw.githubusercontent.com/aditen/ivr-vivid/main/openapi-spec-swagger.yaml)
 # FS21: IVR ViViD group
 
 This is our project for the FS21 seminar Interactive Video Retrieval. It contains of a React/Next.JS frontend and a Python/Flask backend
